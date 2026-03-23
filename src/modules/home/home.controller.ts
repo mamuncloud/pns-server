@@ -1,9 +1,13 @@
 import { Controller, Get, Header } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Home')
 @Controller()
 export class HomeController {
   @Get()
   @Header('Content-Type', 'text/html')
+  @ApiOperation({ summary: 'Welcome page', description: 'Returns a welcome HTML page with links to health check and documentation.' })
+  @ApiResponse({ status: 200, description: 'Welcome page rendered successfully' })
   getHome() {
     return `
       <!DOCTYPE html>
@@ -63,14 +67,26 @@ export class HomeController {
             border-radius: 8px;
             padding: 1rem;
             backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+          }
+          .feature:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
           }
           .feature a {
             font-size: 1rem;
             color: white;
             text-decoration: none;
+            display: block;
           }
-          .feature a:hover {
-            text-decoration: underline;
+          .feature.docs {
+            background: rgba(225, 29, 72, 0.1);
+            border-color: rgba(225, 29, 72, 0.2);
+          }
+          .feature.docs:hover {
+            background: rgba(225, 29, 72, 0.2);
+            border-color: rgba(225, 29, 72, 0.3);
           }
         </style>
       </head>
@@ -80,11 +96,14 @@ export class HomeController {
           <h1>PNS API Server</h1>
           <p>Restructured with NestJS for enterprise-grade scalability.</p>
           <div class="features">
+            <div class="feature docs">
+              <a href="/docs" target="_blank" rel="noreferrer">API Documentation</a>
+            </div>
             <div class="feature">
               <a href="/health" target="_blank" rel="noreferrer">Health Check</a>
             </div>
             <div class="feature">
-              <a href="https://docs.nestjs.com" target="_blank" rel="noreferrer">NestJS docs</a>
+              <a href="https://docs.nestjs.com" target="_blank" rel="noreferrer">NestJS Docs</a>
             </div>
           </div>
         </div>
