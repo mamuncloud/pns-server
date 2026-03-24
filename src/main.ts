@@ -14,9 +14,24 @@ async function bootstrap() {
   // Enable robust graceful shutdown
   setupGracefulShutdown({ app });
   
+  // CORS Configuration
+  const configService = app.get(ConfigService);
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://planetnyemilsnack.store',
+    'https://www.planetnyemilsnack.store',
+  ];
+  
+  const envAppUrl = configService.get<string>('NEXT_PUBLIC_APP_URL');
+  if (envAppUrl && !allowedOrigins.includes(envAppUrl)) {
+    allowedOrigins.push(envAppUrl);
+  }
+
   app.enableCors({
-    origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
   app.useGlobalInterceptors(new ResponseInterceptor());
@@ -48,7 +63,6 @@ async function bootstrap() {
     customSiteTitle: 'PNS API Documentation',
   });
   
-  const configService = app.get(ConfigService);
   const port = configService.get('PORT') || 3000;
   await app.listen(port);
   logger.log(`Server is running at http://localhost:${port}`);
