@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, Logger, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DRIZZLE_DB } from '../../common/database/database.module';
+import { MailsService } from '../mails/mails.service';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq, and, gt } from 'drizzle-orm';
@@ -14,6 +15,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
+    private readonly mailsService: MailsService,
   ) {}
 
   async requestLogin(email: string) {
@@ -46,10 +48,12 @@ export class AuthService {
       expiresAt,
     });
 
-    // 5. Send email (mock for now)
+    // 5. Send real email
     const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const magicLink = `${frontendUrl}/login/verify?token=${token}`;
-    this.logger.log(`Magic link for ${email}: ${magicLink}`);
+    
+    const userName = employee?.name || user?.name || 'User';
+    await this.mailsService.sendMagicLink(email, magicLink, userName);
     
     return { message: 'If you are registered, a login link will be sent to your email.' };
   }
