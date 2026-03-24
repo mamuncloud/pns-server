@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { setupGracefulShutdown } from 'nestjs-graceful-shutdown';
 import { AppModule } from 'src/app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +11,14 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
   
+  // Enable robust graceful shutdown
+  setupGracefulShutdown({ app });
+  
+  app.enableCors({
+    origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    credentials: true,
+  });
+
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
@@ -46,3 +55,4 @@ async function bootstrap() {
   logger.log(`Swagger documentation available at http://localhost:${port}/docs`);
 }
 bootstrap();
+

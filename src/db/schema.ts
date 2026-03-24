@@ -12,6 +12,8 @@ export const orderStatusEnum = pgEnum("OrderStatus", [
   "CANCELLED",
 ]);
 
+export const employeeRoleEnum = pgEnum("EmployeeRole", ["MANAGER", "CASHIER"]);
+
 // Tables
 export const users = pgTable("users", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -24,6 +26,29 @@ export const users = pgTable("users", {
     .defaultNow()
     .notNull()
     .$onUpdate(() => new Date()),
+});
+
+export const employees = pgTable("employees", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  email: varchar("email", { length: 255 }).unique().notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  role: employeeRoleEnum("role").notNull().default("CASHIER"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const authTokens = pgTable("auth_tokens", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  employeeId: varchar("employeeId", { length: 255 })
+    .references(() => employees.id, { onDelete: "cascade" }),
+  userId: varchar("userId", { length: 255 })
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: varchar("token", { length: 255 }).unique().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export const products = pgTable("products", {
@@ -104,6 +129,21 @@ export const loyaltyPoints = pgTable("loyalty_points", {
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   loyaltyPoints: many(loyaltyPoints),
+}));
+
+export const employeesRelations = relations(employees, ({ many }) => ({
+  authTokens: many(authTokens),
+}));
+
+export const authTokensRelations = relations(authTokens, ({ one }) => ({
+  employee: one(employees, {
+    fields: [authTokens.employeeId],
+    references: [employees.id],
+  }),
+  user: one(users, {
+    fields: [authTokens.userId],
+    references: [users.id],
+  }),
 }));
 
 export const productsRelations = relations(products, ({ many }) => ({
