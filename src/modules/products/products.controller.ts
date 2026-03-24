@@ -13,8 +13,8 @@ export class ProductsController {
   @ApiOperation({ summary: 'Get all products', description: 'Returns a paginated list of all products along with their variants.' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully', type: AllProductsResponseDto })
   async findAll(@Query() query: PaginationQueryDto) {
-    const { page, limit } = query;
-    const { data, totalItems } = await this.productsService.findAll(page, limit);
+    const { page, limit, taste } = query;
+    const { data, totalItems } = await this.productsService.findAll(page, limit, taste);
     
     return {
       message: 'Berhasil mengambil semua produk',

@@ -26,6 +26,14 @@ export class PaginationQueryDto {
   @IsInt()
   @Min(1)
   limit?: number = 10;
+
+  @ApiProperty({
+    description: 'Filter by taste',
+    required: false,
+    example: 'Pedas',
+  })
+  @IsOptional()
+  taste?: string;
 }
 
 export class PaginationMetaDto {

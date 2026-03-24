@@ -11,12 +11,15 @@ export class ProductsService {
     private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
-  async findAll(page: number = 1, limit: number = 10) {
+  async findAll(page: number = 1, limit: number = 10, taste?: string) {
     const offset = (page - 1) * limit;
+
+    const where = taste ? sql`${schema.products.taste} @> ARRAY[${taste}]::text[]` : undefined;
 
     const data = await this.db.query.products.findMany({
       limit,
       offset,
+      where,
       with: {
         variants: true,
       },
@@ -25,7 +28,8 @@ export class ProductsService {
 
     const totalItemsResult = await this.db
       .select({ count: sql<number>`count(*)` })
-      .from(schema.products);
+      .from(schema.products)
+      .where(where);
     const totalItems = Number(totalItemsResult[0].count);
 
     return {

@@ -16,7 +16,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
+    "db:seed": "bun run src/db/seed.ts",
     "cleanup": "bun run scripts/cleanup.ts",
     "prepare": "husky"
   },
