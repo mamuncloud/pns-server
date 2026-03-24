@@ -1,7 +1,8 @@
-import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, Query } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam } from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -9,13 +10,21 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all products', description: 'Returns a list of all products along with their variants.' })
+  @ApiOperation({ summary: 'Get all products', description: 'Returns a paginated list of all products along with their variants.' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully', type: AllProductsResponseDto })
-  async findAll() {
-    const products = await this.productsService.findAll();
+  async findAll(@Query() query: PaginationQueryDto) {
+    const { page, limit } = query;
+    const { data, totalItems } = await this.productsService.findAll(page, limit);
+    
     return {
       message: 'Berhasil mengambil semua produk',
-      data: products,
+      data,
+      meta: {
+        page,
+        limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+      },
     };
   }
 

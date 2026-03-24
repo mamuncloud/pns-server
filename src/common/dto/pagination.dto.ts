@@ -1,0 +1,53 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, Min } from 'class-validator';
+
+export class PaginationQueryDto {
+  @ApiProperty({
+    description: 'Page number (1-indexed)',
+    required: false,
+    default: 1,
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiProperty({
+    description: 'Number of items per page',
+    required: false,
+    default: 10,
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number = 10;
+}
+
+export class PaginationMetaDto {
+  @ApiProperty({ example: 1, description: 'Current page number' })
+  page: number;
+
+  @ApiProperty({ example: 10, description: 'Items per page' })
+  limit: number;
+
+  @ApiProperty({ example: 50, description: 'Total number of items' })
+  totalItems: number;
+
+  @ApiProperty({ example: 5, description: 'Total number of pages' })
+  totalPages: number;
+}
+
+export class PaginatedResponseDto<T> {
+  @ApiProperty({ description: 'Response message' })
+  message: string;
+
+  data: T[];
+
+  @ApiProperty({ type: PaginationMetaDto })
+  meta: PaginationMetaDto;
+}
