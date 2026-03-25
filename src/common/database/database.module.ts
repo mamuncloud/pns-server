@@ -5,7 +5,7 @@ import pg from 'pg';
 import * as schema from '../../db/schema';
 
 export const DRIZZLE_DB = 'DRIZZLE_DB';
-export const PG_POOL = 'PG_POOL';
+const PG_POOL = 'PG_POOL';
 
 @Global()
 @Module({
@@ -31,7 +31,7 @@ export const PG_POOL = 'PG_POOL';
       },
     },
   ],
-  exports: [DRIZZLE_DB, PG_POOL],
+  exports: [DRIZZLE_DB],
 })
 export class DatabaseModule implements OnApplicationShutdown {
   constructor(@Inject(PG_POOL) private readonly pool: pg.Pool) {}

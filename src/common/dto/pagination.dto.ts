@@ -36,7 +36,7 @@ export class PaginationQueryDto {
   taste?: string;
 }
 
-export class PaginationMetaDto {
+class PaginationMetaDto {
   @ApiProperty({ example: 1, description: 'Current page number' })
   page: number;
 

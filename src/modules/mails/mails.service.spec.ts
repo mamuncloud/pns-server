@@ -15,7 +15,6 @@ jest.mock('resend', () => {
 
 describe('MailsService', () => {
   let service: MailsService;
-  let configService: ConfigService;
   let mockSend: jest.Mock;
 
   beforeEach(async () => {
@@ -39,7 +38,6 @@ describe('MailsService', () => {
     }).compile();
 
     service = module.get<MailsService>(MailsService);
-    configService = module.get<ConfigService>(ConfigService);
     
     // Access the send mock from the created instance
      

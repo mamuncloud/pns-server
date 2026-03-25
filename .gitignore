@@ -66,3 +66,4 @@ drizzle/
 src/**/*.js
 src/**/*.js.map
 scripts/**/*.js
+knip_output.txt

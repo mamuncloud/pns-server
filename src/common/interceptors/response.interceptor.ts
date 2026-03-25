@@ -8,7 +8,7 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export interface Response<T> {
+interface Response<T> {
   success: boolean;
   statusCode: number;
   message: string;

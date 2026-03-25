@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginatedResponseDto } from '../../../common/dto/pagination.dto';
 
-export class ProductVariantDto {
+class ProductVariantDto {
   @ApiProperty({ example: 'uuid-123', description: 'Unique identifier for the product variant' })
   id: string;
 
@@ -18,7 +18,7 @@ export class ProductVariantDto {
   sku?: string;
 }
 
-export class ProductDto {
+class ProductDto {
   @ApiProperty({ example: 'uuid-456', description: 'Unique identifier for the product' })
   id: string;
 

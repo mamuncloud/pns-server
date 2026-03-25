@@ -6,6 +6,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { apiReference } from '@scalar/nestjs-api-reference';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -56,17 +57,21 @@ async function bootstrap() {
     .build();
   
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-    customSiteTitle: 'PNS API Documentation',
-  });
+  
+  app.use(
+    '/docs',
+    apiReference({
+      spec: {
+        content: document,
+      },
+      theme: 'deepSpace',
+    }),
+  );
   
   const port = configService.get('PORT') || 3000;
   await app.listen(port);
   logger.log(`Server is running at http://localhost:${port}`);
-  logger.log(`Swagger documentation available at http://localhost:${port}/docs`);
+  logger.log(`Scalar documentation available at http://localhost:${port}/docs`);
 }
 bootstrap();
 
