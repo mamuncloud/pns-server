@@ -50,9 +50,14 @@ async function bootstrap() {
     .setTitle('PNS Server API')
     .setDescription('The API documentation for PNS Server, providing endpoints for health monitoring, home page data, and product management.')
     .setVersion('1.0.50')
-    .addTag('Health', 'System health and uptime monitoring')
-    .addTag('Home', 'Homepage related content and metadata')
-    .addTag('Products', 'Product catalog and management')
+    .addTag('Auth', 'Security and access control for the staff dashboard')
+    .addTag('Home', 'Initial discovery and homepage metadata')
+    .addTag('Products', 'Product catalog search and management')
+    .addTag('Pricing Rules', 'Dynamic pricing logic and bulk rules')
+    .addTag('Orders', 'Checkout and ordering transactions')
+    .addTag('Stock Adjustments', 'Manual inventory corrections (e.g., loss, damage)')
+    .addTag('Purchases', 'Supply chain management and restocking with HPP calculation')
+    .addTag('Health', 'Internal system maintenance and performance monitoring')
     .addBearerAuth()
     .build();
   
