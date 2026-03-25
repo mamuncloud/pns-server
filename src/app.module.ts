@@ -6,6 +6,9 @@ import { HealthModule } from 'src/modules/health/health.module';
 import { HomeModule } from 'src/modules/home/home.module';
 import { ProductsModule } from 'src/modules/products/products.module';
 import { AuthModule } from 'src/modules/auth/auth.module';
+import { StockAdjustmentsModule } from 'src/modules/stock-adjustments/stock-adjustments.module';
+import { PurchasesModule } from 'src/modules/purchases/purchases.module';
+import { OrdersModule } from 'src/modules/orders/orders.module';
 
 @Module({
   imports: [
@@ -18,6 +21,9 @@ import { AuthModule } from 'src/modules/auth/auth.module';
     HomeModule,
     ProductsModule,
     AuthModule,
+    StockAdjustmentsModule,
+    PurchasesModule,
+    OrdersModule,
   ],
 })
 export class AppModule {}

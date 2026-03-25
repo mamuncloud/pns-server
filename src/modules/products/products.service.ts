@@ -22,6 +22,8 @@ export class ProductsService {
       where,
       with: {
         variants: true,
+        brand: true,
+        pricingRules: true,
       },
       orderBy: (products, { desc }) => [desc(products.createdAt)],
     });
@@ -43,6 +45,8 @@ export class ProductsService {
       where: eq(schema.products.id, id),
       with: {
         variants: true,
+        brand: true,
+        pricingRules: true,
       },
     });
   }

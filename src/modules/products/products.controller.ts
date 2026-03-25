@@ -3,11 +3,15 @@ import { ProductsService } from './products.service';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam } from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { PricingRulesService } from './pricing-rules.service';
 
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly pricingRulesService: PricingRulesService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all products', description: 'Returns a paginated list of all products along with their variants.' })
@@ -41,6 +45,18 @@ export class ProductsController {
     return {
       message: 'Berhasil mengambil detail produk',
       data: product,
+    };
+  }
+
+  @Get(':id/pricing')
+  @ApiOperation({ summary: 'Get pricing rules for a product' })
+  @ApiParam({ name: 'id', description: 'Unique identifier of the product' })
+  @ApiResponse({ status: 200, description: 'Pricing rules retrieved successfully' })
+  async getPricing(@Param('id') id: string) {
+    const result = await this.pricingRulesService.findByProductId(id);
+    return {
+      message: 'Berhasil mengambil aturan harga produk',
+      data: result,
     };
   }
 }
