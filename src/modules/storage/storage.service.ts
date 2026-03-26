@@ -1,30 +1,43 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as path from 'path';
 
 @Injectable()
 export class StorageService {
-  private readonly uploadPath = path.join(process.cwd(), 'public', 'uploads');
-  private readonly baseUrl: string;
+  private readonly supabase: SupabaseClient;
+  private readonly bucketName = 'products';
+  private readonly logger = new Logger(StorageService.name);
 
   constructor(private readonly configService: ConfigService) {
-    this.baseUrl = this.configService.get<string>('NEXT_PUBLIC_API_URL') || 'http://localhost:3001';
-    
-    // Ensure upload directory exists
-    if (!fs.existsSync(this.uploadPath)) {
-      fs.mkdirSync(this.uploadPath, { recursive: true });
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
+    const supabaseKey = this.configService.get<string>('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+       this.logger.error('SUPABASE_URL or SUPABASE_ANON_KEY is missing in configuration');
     }
+
+    this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
   async uploadFile(file: any): Promise<string> {
     const fileExt = path.extname(file.originalname);
     const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExt}`;
-    const filePath = path.join(this.uploadPath, fileName);
+    const filePath = `${fileName}`;
 
-    await fs.promises.writeFile(filePath, file.buffer);
+    const { data, error } = await this.supabase.storage
+      .from(this.bucketName)
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false
+      });
 
-    return `uploads/${fileName}`;
+    if (error) {
+      this.logger.error(`Failed to upload file to Supabase: ${error.message}`);
+      throw error;
+    }
+
+    return data.path;
   }
 
   async uploadFiles(files: any[]): Promise<string[]> {
