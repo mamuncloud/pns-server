@@ -4,6 +4,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
+import { ProductVariantLabel } from '../products/dto/create-product.dto';
 
 @Injectable()
 export class PurchasesService {
@@ -70,11 +71,14 @@ export class PurchasesService {
         const variant = product.variants.find((v) => v.label === item.variantLabel);
 
         if (!variant) {
+          // If variantLabel is not provided, we need a default from the enum
+          const defaultLabel = item.variantLabel || ProductVariantLabel['250GR'];
+
           await tx
             .insert(schema.productVariants)
             .values({
               productId: item.productId,
-              label: item.variantLabel || 'Standard',
+              label: defaultLabel,
               price: item.sellingPrice,
               stock: item.qty,
             })

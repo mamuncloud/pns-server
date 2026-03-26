@@ -26,6 +26,15 @@ export const adjustmentReasonEnum = pgEnum("AdjustmentReason", [
 
 export const productTasteEnum = pgEnum("ProductTaste", ["GURIH", "PEDAS", "MANIS"]);
 
+export const productVariantLabelEnum = pgEnum("ProductVariantLabel", [
+  "ES3",
+  "ES4",
+  "250gr",
+  "500gr",
+  "1kg",
+  "bal",
+]);
+
 // Tables
 export const users = pgTable("users", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -96,7 +105,7 @@ export const productVariants = pgTable("product_variants", {
   productId: varchar("productId", { length: 255 })
     .references(() => products.id, { onDelete: "cascade" })
     .notNull(),
-  label: varchar("label", { length: 255 }).notNull(),
+  label: productVariantLabelEnum("label").notNull(),
   price: integer("price").notNull(),
   stock: integer("stock").default(0).notNull(),
   sku: varchar("sku", { length: 255 }).unique(),
@@ -227,7 +236,7 @@ export const purchaseItems = pgTable("purchase_items", {
   productId: varchar("productId", { length: 255 })
     .references(() => products.id)
     .notNull(),
-  variantLabel: varchar("variantLabel", { length: 255 }),
+  variantLabel: productVariantLabelEnum("variantLabel"),
   qty: integer("qty").notNull(),
   totalCost: integer("totalCost").notNull(),
   extraCosts: integer("extraCosts").default(0).notNull(),
@@ -236,6 +245,7 @@ export const purchaseItems = pgTable("purchase_items", {
   expiredDate: timestamp("expiredDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({

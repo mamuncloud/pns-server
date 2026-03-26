@@ -3,7 +3,6 @@ import { Type } from 'class-transformer';
 import { 
   IsArray, 
   IsBoolean, 
-  IsEnum, 
   IsInt, 
   IsNotEmpty, 
   IsOptional, 
@@ -11,14 +10,24 @@ import {
   Min, 
   ValidateNested,
   ArrayMinSize,
-  ArrayMaxSize
+  ArrayMaxSize,
+  IsEnum
 } from 'class-validator';
 
+export enum ProductVariantLabel {
+  ES3 = 'ES3',
+  ES4 = 'ES4',
+  '250GR' = '250gr',
+  '500GR' = '500gr',
+  '1KG' = '1kg',
+  BAL = 'bal',
+}
+
 export class CreateVariantDto {
-  @ApiProperty({ example: '250g' })
-  @IsString()
+  @ApiProperty({ enum: ProductVariantLabel, example: ProductVariantLabel['250GR'] })
+  @IsEnum(ProductVariantLabel)
   @IsNotEmpty()
-  label: string;
+  label: ProductVariantLabel;
 
   @ApiProperty({ example: 25000 })
   @IsInt()

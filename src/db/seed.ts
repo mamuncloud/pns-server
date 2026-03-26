@@ -20,7 +20,7 @@ async function seed() {
     await db.delete(schema.products);
 
     const tastes = ['Pedas', 'Gurih', 'Manis'];
-    const labels = ['250gr', '500gr', '1kg', 'Medium', 'Small', 'Grocery'];
+    const labels = ['ES3', 'ES4', '250gr', '500gr', '1kg', 'bal'];
     const snackNames = [
       'Keripik Kaca', 'Makaroni Ngocor', 'Basreng Gila', 'Usus Pedas', 'Cireng Krispi',
       'Lidi-lidian', 'Batagor Kuah', 'Pilus Gurih', 'Kacang Atom', 'Emping Manis',

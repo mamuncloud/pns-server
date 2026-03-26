@@ -1,16 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsDateString, IsInt, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsDateString, IsEnum, IsInt, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ProductVariantLabel } from '../../products/dto/create-product.dto';
 
 class PurchaseItemDto {
   @ApiProperty({ example: 'uuid-123' })
   @IsUUID()
   productId: string;
 
-  @ApiProperty({ example: '100g' })
-  @IsString()
+  @ApiProperty({ enum: ProductVariantLabel, example: ProductVariantLabel['250GR'] })
+  @IsEnum(ProductVariantLabel)
   @IsOptional()
-  variantLabel?: string;
+  variantLabel?: ProductVariantLabel;
 
   @ApiProperty({ example: 10 })
   @IsInt()
