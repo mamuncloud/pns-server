@@ -182,6 +182,16 @@ export const loyaltyPoints = pgTable("loyalty_points", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const productImages = pgTable("product_images", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  productId: varchar("productId", { length: 255 })
+    .references(() => products.id, { onDelete: "cascade" })
+    .notNull(),
+  url: text("url").notNull(),
+  isPrimary: boolean("isPrimary").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
@@ -211,6 +221,14 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   variants: many(productVariants),
   pricingRules: many(pricingRules),
   stockAdjustments: many(stockAdjustments),
+  images: many(productImages),
+}));
+
+export const productImagesRelations = relations(productImages, ({ one }) => ({
+  product: one(products, {
+    fields: [productImages.productId],
+    references: [products.id],
+  }),
 }));
 
 export const brandsRelations = relations(brands, ({ many }) => ({
