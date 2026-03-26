@@ -10,6 +10,7 @@ import { StockAdjustmentsModule } from 'src/modules/stock-adjustments/stock-adju
 import { PurchasesModule } from 'src/modules/purchases/purchases.module';
 import { OrdersModule } from 'src/modules/orders/orders.module';
 import { StorageModule } from 'src/modules/storage/storage.module';
+import { SuppliersModule } from 'src/modules/suppliers/suppliers.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { StorageModule } from 'src/modules/storage/storage.module';
     PurchasesModule,
     OrdersModule,
     StorageModule,
+    SuppliersModule,
   ],
 })
 export class AppModule {}
