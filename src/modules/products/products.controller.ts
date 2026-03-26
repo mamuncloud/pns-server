@@ -1,5 +1,6 @@
-import { Controller, Get, Param, NotFoundException, Query } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, Query, Post, Body } from '@nestjs/common';
 import { ProductsService } from './products.service';
+import { CreateProductDto } from './dto/create-product.dto';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam } from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
@@ -56,6 +57,17 @@ export class ProductsController {
     const result = await this.pricingRulesService.findByProductId(id);
     return {
       message: 'Berhasil mengambil aturan harga produk',
+      data: result,
+    };
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create new product', description: 'Creates a new product with its variants, images, and pricing rules.' })
+  @ApiResponse({ status: 201, description: 'Product created successfully' })
+  async create(@Body() dto: CreateProductDto) {
+    const result = await this.productsService.create(dto);
+    return {
+      message: 'Berhasil membuat produk baru',
       data: result,
     };
   }

@@ -4,6 +4,8 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { ConfigService } from '@nestjs/config';
+import { CreateProductDto } from './dto/create-product.dto';
+import { generateNextSku } from '../../lib/sku-generator.util';
 
 @Injectable()
 export class ProductsService {
@@ -97,5 +99,114 @@ export class ProductsService {
       images: normalizedImages,
       imageUrl: displayImageUrl,
     };
+  }
+
+  async create(dto: CreateProductDto) {
+    return await this.db.transaction(async (tx) => {
+      // 1. Insert Product
+      const [product] = await tx
+        .insert(schema.products)
+        .values({
+          name: dto.name,
+          description: dto.description,
+          brandId: dto.brandId,
+          baseCostPerGram: dto.baseCostPerGram,
+          packagingCost: dto.packagingCost,
+          taste: dto.taste,
+        })
+        .returning();
+
+      // 2. Handle Variants & SKU Generation
+      let lastSku: string | null = null;
+      const latestVariant = await tx.query.productVariants.findFirst({
+        where: sql`${schema.productVariants.sku} LIKE 'PNS-%'`,
+        orderBy: (variants, { desc }) => [desc(variants.sku)],
+      });
+      if (latestVariant) lastSku = latestVariant.sku;
+
+      const createdVariants = [];
+      for (const vDto of dto.variants) {
+        let sku = vDto.sku;
+        if (!sku) {
+          sku = generateNextSku(lastSku);
+          lastSku = sku;
+        }
+
+        const [variant] = await tx
+          .insert(schema.productVariants)
+          .values({
+            productId: product.id,
+            label: vDto.label,
+            price: vDto.price,
+            stock: vDto.initialStock || 0,
+            sku: sku,
+          })
+          .returning();
+
+        createdVariants.push(variant);
+
+        // Record initial stock if provided
+        if (vDto.initialStock && vDto.initialStock > 0) {
+          await tx.insert(schema.stockAdjustments).values({
+            productId: product.id,
+            qty: vDto.initialStock,
+            reason: 'RESTOCK',
+            hppSnapshot: 0, // Initial stock might not have HPP yet
+            totalLoss: 0,
+          });
+        }
+      }
+
+      // 3. Handle Images
+      const createdImages = [];
+      if (dto.images && dto.images.length > 0) {
+        for (const iDto of dto.images) {
+          const [image] = await tx
+            .insert(schema.productImages)
+            .values({
+              productId: product.id,
+              url: iDto.url,
+              isPrimary: iDto.isPrimary || false,
+            })
+            .returning();
+          createdImages.push(image);
+        }
+      }
+
+      // 4. Handle Pricing Rules
+      const createdRules = [];
+      if (dto.pricingRules && dto.pricingRules.length > 0) {
+        for (const rDto of dto.pricingRules) {
+          const [rule] = await tx
+            .insert(schema.pricingRules)
+            .values({
+              productId: product.id,
+              type: rDto.type as any,
+              weightGram: rDto.weightGram,
+              targetPrice: rDto.targetPrice,
+              marginPct: rDto.marginPct,
+              rounding: rDto.rounding || 100,
+            })
+            .returning();
+          createdRules.push(rule);
+        }
+      }
+
+      // Update base product stock sum if variants were added
+      if (createdVariants.length > 0) {
+        const totalStock = createdVariants.reduce((sum, v) => sum + v.stock, 0);
+        await tx
+          .update(schema.products)
+          .set({ stockQty: totalStock })
+          .where(eq(schema.products.id, product.id));
+      }
+
+      return {
+        ...product,
+        variants: createdVariants,
+        images: createdImages,
+        pricingRules: createdRules,
+      };
+    });
   }
 }
