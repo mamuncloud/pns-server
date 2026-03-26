@@ -83,6 +83,7 @@ export const products = pgTable("products", {
     .notNull()
     .default(sql`'{}'::"ProductTaste"[]`),
   isActive: boolean("isActive").default(true).notNull(),
+  currentHpp: integer("currentHpp").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -203,6 +204,39 @@ export const suppliers = pgTable("suppliers", {
     .$onUpdate(() => new Date()),
 });
 
+export const purchases = pgTable("purchases", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  supplierId: varchar("supplierId", { length: 255 })
+    .references(() => suppliers.id)
+    .notNull(),
+  date: timestamp("date").notNull(),
+  note: text("note"),
+  totalAmount: integer("totalAmount").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const purchaseItems = pgTable("purchase_items", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  purchaseId: varchar("purchaseId", { length: 255 })
+    .references(() => purchases.id, { onDelete: "cascade" })
+    .notNull(),
+  productId: varchar("productId", { length: 255 })
+    .references(() => products.id)
+    .notNull(),
+  variantLabel: varchar("variantLabel", { length: 255 }),
+  qty: integer("qty").notNull(),
+  totalCost: integer("totalCost").notNull(),
+  extraCosts: integer("extraCosts").default(0).notNull(),
+  unitCost: integer("unitCost").notNull(),
+  sellingPrice: integer("sellingPrice").notNull(),
+  expiredDate: timestamp("expiredDate"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
@@ -299,7 +333,25 @@ export const loyaltyPointsRelations = relations(loyaltyPoints, ({ one }) => ({
   }),
 }));
 
-export const suppliersRelations = relations(suppliers, () => ({
-  // Potential future relations:
-  // stockAdjustments: many(stockAdjustments),
+export const suppliersRelations = relations(suppliers, ({ many }) => ({
+  purchases: many(purchases),
+}));
+
+export const purchasesRelations = relations(purchases, ({ one, many }) => ({
+  supplier: one(suppliers, {
+    fields: [purchases.supplierId],
+    references: [suppliers.id],
+  }),
+  items: many(purchaseItems),
+}));
+
+export const purchaseItemsRelations = relations(purchaseItems, ({ one }) => ({
+  purchase: one(purchases, {
+    fields: [purchaseItems.purchaseId],
+    references: [purchases.id],
+  }),
+  product: one(products, {
+    fields: [purchaseItems.productId],
+    references: [products.id],
+  }),
 }));
