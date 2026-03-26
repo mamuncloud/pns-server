@@ -14,6 +14,17 @@ export class ProductsController {
     private readonly pricingRulesService: PricingRulesService,
   ) {}
 
+  @Get('brands')
+  @ApiOperation({ summary: 'Get all brands' })
+  @ApiResponse({ status: 200, description: 'Brands retrieved successfully' })
+  async findBrands() {
+    const brands = await this.productsService.findBrands();
+    return {
+      message: 'Berhasil mengambil semua brand',
+      data: brands,
+    };
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all products', description: 'Returns a paginated list of all products along with their variants.' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully', type: AllProductsResponseDto })

@@ -7,11 +7,17 @@ import { ConfigService } from '@nestjs/config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import * as express from 'express';
+import { join } from 'path';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
   
+  // Increase payload limits
+  app.use(express.json({ limit: '2mb' }));
+  app.use(express.urlencoded({ limit: '2mb', extended: true }));
+
   // Enable robust graceful shutdown
   setupGracefulShutdown({ app });
   
@@ -72,6 +78,9 @@ async function bootstrap() {
       theme: 'deepSpace',
     }),
   );
+
+  // Serve static files from public directory
+  app.use('/uploads', express.static(join(process.cwd(), 'public', 'uploads')));
   
   const port = configService.get('PORT') || 3000;
   await app.listen(port);

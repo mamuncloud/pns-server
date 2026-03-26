@@ -9,7 +9,9 @@ import {
   IsOptional, 
   IsString, 
   Min, 
-  ValidateNested 
+  ValidateNested,
+  ArrayMinSize,
+  ArrayMaxSize
 } from 'class-validator';
 
 export class CreateVariantDto {
@@ -51,6 +53,12 @@ export enum PricingType {
   WEIGHT = 'WEIGHT',
   FIXED_PRICE = 'FIXED_PRICE',
   BULK = 'BULK',
+}
+
+export enum ProductTaste {
+  GURIH = 'GURIH',
+  PEDAS = 'PEDAS',
+  MANIS = 'MANIS',
 }
 
 export class CreateProductPricingRuleDto {
@@ -98,27 +106,12 @@ export class CreateProductDto {
   @IsString()
   brandId?: string;
 
-  @ApiProperty({ example: 80, description: 'Base cost per gram' })
-  @IsInt()
-  @Min(0)
-  baseCostPerGram: number;
-
-  @ApiProperty({ example: 500, description: 'Packaging cost' })
-  @IsInt()
-  @Min(0)
-  packagingCost: number;
-
-  @ApiPropertyOptional({ example: ['MANIS', 'PEDAS'] })
-  @IsOptional()
+  @ApiProperty({ enum: ProductTaste, isArray: true, example: [ProductTaste.MANIS, ProductTaste.PEDAS], description: 'Min 1, max 3 flavors' })
   @IsArray()
-  @IsString({ each: true })
-  taste?: string[];
-
-  @ApiProperty({ type: [CreateVariantDto] })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateVariantDto)
-  variants: CreateVariantDto[];
+  @IsEnum(ProductTaste, { each: true })
+  @ArrayMinSize(1)
+  @ArrayMaxSize(3)
+  taste: ProductTaste[];
 
   @ApiPropertyOptional({ type: [CreateProductImageDto] })
   @IsOptional()
@@ -127,10 +120,10 @@ export class CreateProductDto {
   @Type(() => CreateProductImageDto)
   images?: CreateProductImageDto[];
 
-  @ApiPropertyOptional({ type: [CreateProductPricingRuleDto] })
+  @ApiPropertyOptional({ type: [CreateVariantDto] })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateProductPricingRuleDto)
-  pricingRules?: CreateProductPricingRuleDto[];
+  @Type(() => CreateVariantDto)
+  variants?: CreateVariantDto[];
 }

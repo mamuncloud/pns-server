@@ -9,6 +9,7 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { StockAdjustmentsModule } from 'src/modules/stock-adjustments/stock-adjustments.module';
 import { PurchasesModule } from 'src/modules/purchases/purchases.module';
 import { OrdersModule } from 'src/modules/orders/orders.module';
+import { StorageModule } from 'src/modules/storage/storage.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { OrdersModule } from 'src/modules/orders/orders.module';
     StockAdjustmentsModule,
     PurchasesModule,
     OrdersModule,
+    StorageModule,
   ],
 })
 export class AppModule {}

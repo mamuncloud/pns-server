@@ -24,6 +24,8 @@ export const adjustmentReasonEnum = pgEnum("AdjustmentReason", [
   "PURCHASE",
 ]);
 
+export const productTasteEnum = pgEnum("ProductTaste", ["GURIH", "PEDAS", "MANIS"]);
+
 // Tables
 export const users = pgTable("users", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -75,17 +77,11 @@ export const products = pgTable("products", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  imageUrl: text("imageUrl"),
   brandId: varchar("brandId", { length: 255 }).references(() => brands.id),
-  sellingPrice: integer("sellingPrice").default(0).notNull(),
-  currentHpp: integer("currentHpp").default(0).notNull(),
-  stockQty: integer("stockQty").default(0).notNull(),
-  baseCostPerGram: integer("baseCostPerGram").default(0).notNull(),
-  packagingCost: integer("packagingCost").default(0).notNull(),
-  taste: text("taste")
+  taste: productTasteEnum("taste")
     .array()
     .notNull()
-    .default(sql`'{}'::text[]`),
+    .default(sql`'{}'::"ProductTaste"[]`),
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
@@ -192,6 +188,21 @@ export const productImages = pgTable("product_images", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const suppliers = pgTable("suppliers", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }).notNull(),
+  contactName: varchar("contactName", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 255 }),
+  address: text("address"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
@@ -286,4 +297,9 @@ export const loyaltyPointsRelations = relations(loyaltyPoints, ({ one }) => ({
     fields: [loyaltyPoints.userId],
     references: [users.id],
   }),
+}));
+
+export const suppliersRelations = relations(suppliers, () => ({
+  // Potential future relations:
+  // stockAdjustments: many(stockAdjustments),
 }));

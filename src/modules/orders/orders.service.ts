@@ -45,14 +45,7 @@ export class OrdersService {
           price: item.price,
         });
 
-        // Update product stock (Main stock in products table)
-        await tx.update(schema.products)
-          .set({
-            stockQty: sql`${schema.products.stockQty} - ${item.quantity}`,
-          })
-          .where(eq(schema.products.id, variant.productId));
-          
-        // Also update variant stock if needed (compatibility)
+        // Update variant stock
         await tx.update(schema.productVariants)
           .set({
             stock: sql`${schema.productVariants.stock} - ${item.quantity}`,

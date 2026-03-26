@@ -4,7 +4,6 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { CreatePricingRuleDto } from './dto/pricing-rule.dto';
-import { calculateForwardPricing, calculateReversePricing, calculateBulkPricing } from '../../lib/pricing-engine.util';
 
 @Injectable()
 export class PricingRulesService {
@@ -44,28 +43,16 @@ export class PricingRulesService {
       let calculatedLabel: string = '';
 
       if (rule.type === 'WEIGHT' && rule.weightGram) {
-        calculatedValue = calculateForwardPricing(
-          Number(product.baseCostPerGram),
-          rule.weightGram,
-          Number(product.packagingCost),
-          rule.marginPct,
-          rule.rounding
-        );
+        // Logic temporarily disabled due to missing columns in DB: baseCostPerGram, packagingCost
+        calculatedValue = null; 
         calculatedLabel = 'calculated_price';
       } else if (rule.type === 'FIXED_PRICE' && rule.targetPrice) {
-        calculatedValue = calculateReversePricing(
-          rule.targetPrice,
-          Number(product.baseCostPerGram),
-          Number(product.packagingCost),
-          rule.marginPct
-        );
+        // Logic temporarily disabled due to missing columns in DB: baseCostPerGram, packagingCost
+        calculatedValue = null;
         calculatedLabel = 'calculated_weight';
       } else if (rule.type === 'BULK') {
-        calculatedValue = calculateBulkPricing(
-          Number(product.currentHpp), // Using current HPP for bulk? PRD says rounding base_cost * (1 + margin)
-          rule.marginPct,
-          rule.rounding
-        );
+        // Logic temporarily disabled due to missing columns in DB: currentHpp
+        calculatedValue = null;
         calculatedLabel = 'calculated_price';
       }
 
