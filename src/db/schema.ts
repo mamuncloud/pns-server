@@ -233,6 +233,15 @@ export const purchaseItems = pgTable("purchase_items", {
 });
 
 
+export const storeSettings = pgTable("store_settings", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  isStoreOpen: boolean("isStoreOpen").default(true).notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
