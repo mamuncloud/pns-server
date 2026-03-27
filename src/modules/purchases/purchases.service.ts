@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
@@ -268,6 +268,29 @@ export class PurchasesService {
       return {
         message: 'Berhasil memperbarui transaksi pembelian',
         data: await this.findOne(id),
+      };
+    });
+  }
+
+  async remove(id: string) {
+    return await this.db.transaction(async (tx) => {
+      const purchase = await tx.query.purchases.findFirst({
+        where: eq(schema.purchases.id, id),
+      });
+
+      if (!purchase) {
+        throw new NotFoundException(`Pembelian dengan ID ${id} tidak ditemukan`);
+      }
+
+      if (purchase.status !== 'DRAFT') {
+        throw new BadRequestException('Hanya pembelian dengan status DRAFT yang dapat dihapus');
+      }
+
+      // Cascading delete is handled in schema (purchaseItems references purchases with onDelete: cascade)
+      await tx.delete(schema.purchases).where(eq(schema.purchases.id, id));
+
+      return {
+        message: 'Berhasil menghapus transaksi pembelian',
       };
     });
   }
