@@ -11,6 +11,7 @@ import { PurchasesModule } from 'src/modules/purchases/purchases.module';
 import { OrdersModule } from 'src/modules/orders/orders.module';
 import { StorageModule } from 'src/modules/storage/storage.module';
 import { SuppliersModule } from 'src/modules/suppliers/suppliers.module';
+import { InventoryModule } from 'src/modules/inventory/inventory.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SuppliersModule } from 'src/modules/suppliers/suppliers.module';
     OrdersModule,
     StorageModule,
     SuppliersModule,
+    InventoryModule,
   ],
 })
 export class AppModule {}

@@ -6,43 +6,16 @@ import { eq } from 'drizzle-orm';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
 import { ProductVariantLabel } from '../products/dto/create-product.dto';
+import { InventoryService } from '../inventory/inventory.service';
 
 @Injectable()
 export class PurchasesService {
   constructor(
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
+    private readonly inventoryService: InventoryService,
   ) {}
 
-  private async createVariantBatch(
-    tx: any,
-    productId: string,
-    variantLabel: ProductVariantLabel | string | undefined,
-    sellingPrice: number,
-    qty: number,
-    purchaseItemId: string,
-    expiredDate?: Date | null,
-  ) {
-    const normalizedLabel = this.normalizeVariantLabel(variantLabel);
-    const [newVariant] = await tx
-      .insert(schema.productVariants)
-      .values({
-        productId,
-        purchaseItemId,
-        label: normalizedLabel as any,
-        price: sellingPrice,
-        stock: qty,
-        expiredDate,
-      })
-      .returning();
-    return newVariant;
-  }
-
-  private async removeVariantBatch(tx: any, purchaseItemId: string) {
-    await tx
-      .delete(schema.productVariants)
-      .where(eq(schema.productVariants.purchaseItemId, purchaseItemId));
-  }
 
   private normalizeVariantLabel(label: ProductVariantLabel | string | undefined): string {
     if (!label) return '250gr';
@@ -119,14 +92,16 @@ export class PurchasesService {
             .set({ currentHpp: newHpp })
             .where(eq(schema.products.id, item.productId));
 
-          await this.createVariantBatch(
+          await this.inventoryService.recordStockFromPurchase(
             tx,
-            item.productId,
-            item.variantLabel,
-            item.sellingPrice,
-            item.qty,
-            newItem.id,
-            item.expiredDate ? new Date(item.expiredDate) : null,
+            {
+              productId: item.productId,
+              purchaseItemId: newItem.id,
+              label: this.normalizeVariantLabel(item.variantLabel),
+              price: item.sellingPrice,
+              qty: item.qty,
+              expiredDate: item.expiredDate ? new Date(item.expiredDate) : undefined,
+            }
           );
 
           await tx.insert(schema.stockAdjustments).values({
@@ -218,7 +193,7 @@ export class PurchasesService {
           });
 
           if (product) {
-            await this.removeVariantBatch(tx, item.id);
+            await this.inventoryService.removeStockByPurchaseItem(tx, item.id);
 
             const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
             const newHpp = Math.round(
@@ -256,7 +231,7 @@ export class PurchasesService {
 
         if (willBeCompleted) {
           for (const existingItem of existingPurchase.items) {
-            await this.removeVariantBatch(tx, existingItem.id);
+            await this.inventoryService.removeStockByPurchaseItem(tx, existingItem.id);
           }
         }
 
@@ -301,14 +276,16 @@ export class PurchasesService {
               .set({ currentHpp: newHpp })
               .where(eq(schema.products.id, item.productId));
 
-            await this.createVariantBatch(
+            await this.inventoryService.recordStockFromPurchase(
               tx,
-              item.productId,
-              item.variantLabel,
-              item.sellingPrice,
-              item.qty,
-              newItem.id,
-              item.expiredDate ? new Date(item.expiredDate) : null,
+              {
+                productId: item.productId,
+                purchaseItemId: newItem.id,
+                label: this.normalizeVariantLabel(item.variantLabel),
+                price: item.sellingPrice,
+                qty: item.qty,
+                expiredDate: item.expiredDate ? new Date(item.expiredDate) : undefined,
+              }
             );
 
             await tx.insert(schema.stockAdjustments).values({
@@ -354,14 +331,16 @@ export class PurchasesService {
               .set({ currentHpp: newHpp })
               .where(eq(schema.products.id, item.productId));
 
-            await this.createVariantBatch(
+            await this.inventoryService.recordStockFromPurchase(
               tx,
-              item.productId,
-              item.variantLabel,
-              item.sellingPrice,
-              item.qty,
-              item.id,
-              item.expiredDate,
+              {
+                productId: item.productId,
+                purchaseItemId: item.id,
+                label: this.normalizeVariantLabel(item.variantLabel),
+                price: item.sellingPrice,
+                qty: item.qty,
+                expiredDate: item.expiredDate ? new Date(item.expiredDate) : undefined,
+              }
             );
 
             await tx.insert(schema.stockAdjustments).values({
