@@ -35,7 +35,7 @@ export class ProductsService {
   async findAll(page: number = 1, limit: number = 10, taste?: string) {
     const offset = (page - 1) * limit;
 
-    const where = taste ? sql`${schema.products.taste} @> ARRAY[${taste}]::text[]` : undefined;
+    const where = taste ? sql`${schema.products.taste} @> ARRAY[${taste}]::"ProductTaste"[]` : undefined;
 
     const rawData = await this.db.query.products.findMany({
       limit,
