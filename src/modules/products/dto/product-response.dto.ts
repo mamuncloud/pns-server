@@ -16,6 +16,9 @@ class ProductVariantDto {
 
   @ApiProperty({ example: 'PNS-ORG-001', description: 'Stock Keeping Unit identifier', required: false })
   sku?: string;
+
+  @ApiProperty({ example: 250, description: 'Size of the variant in grams', required: false })
+  sizeInGram?: number;
 }
 
 class ProductDto {

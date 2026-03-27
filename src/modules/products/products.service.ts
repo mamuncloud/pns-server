@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
@@ -6,6 +6,12 @@ import { eq, sql } from 'drizzle-orm';
 import { ConfigService } from '@nestjs/config';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
+
+export class UpdateProductDto {
+  name?: string;
+  description?: string;
+  brandId?: string;
+}
 
 @Injectable()
 export class ProductsService {
@@ -160,12 +166,37 @@ export class ProductsService {
             price: v.price,
             stock: v.initialStock ?? 0,
             sku: v.sku,
+            sizeInGram: v.sizeInGram,
           })),
         );
       }
 
       return this.findOne(product.id);
     });
+  }
+
+  async update(id: string, dto: UpdateProductDto) {
+    const product = await this.db.query.products.findFirst({
+      where: eq(schema.products.id, id),
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Produk dengan ID ${id} tidak ditemukan`);
+    }
+
+    const updateValues: Partial<typeof schema.products.$inferInsert> = {};
+    if (dto.name !== undefined) updateValues.name = dto.name;
+    if (dto.description !== undefined) updateValues.description = dto.description;
+    if (dto.brandId !== undefined) updateValues.brandId = dto.brandId;
+
+    if (Object.keys(updateValues).length > 0) {
+      await this.db
+        .update(schema.products)
+        .set(updateValues)
+        .where(eq(schema.products.id, id));
+    }
+
+    return this.findOne(id);
   }
 
   async findBrands() {

@@ -103,6 +103,7 @@ export const productVariants = pgTable("product_variants", {
   price: integer("price").notNull(),
   stock: integer("stock").default(0).notNull(),
   sku: varchar("sku", { length: 255 }).unique(),
+  sizeInGram: integer("sizeInGram"),
   expiredDate: timestamp("expiredDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")

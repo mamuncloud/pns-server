@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { setupGracefulShutdown } from 'nestjs-graceful-shutdown';
 import { AppModule } from 'src/app.module';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -55,6 +55,10 @@ async function bootstrap() {
     transformOptions: {
       enableImplicitConversion: true,
     },
+    exceptionFactory: (errors) => {
+      console.error('Validation Errors:', JSON.stringify(errors, null, 2));
+      return new BadRequestException(errors);
+    }
   }));
   
   // Swagger Configuration

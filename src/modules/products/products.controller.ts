@@ -1,5 +1,5 @@
-import { Controller, Get, Param, NotFoundException, Query, Post, Body } from '@nestjs/common';
-import { ProductsService } from './products.service';
+import { Controller, Get, Param, NotFoundException, Query, Post, Body, Patch } from '@nestjs/common';
+import { ProductsService, UpdateProductDto } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam } from '@nestjs/swagger';
@@ -91,6 +91,19 @@ export class ProductsController {
     const result = await this.productsService.create(dto);
     return {
       message: 'Berhasil membuat produk baru',
+      data: result,
+    };
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update product', description: 'Updates an existing product\'s basic fields.' })
+  @ApiParam({ name: 'id', description: 'Unique identifier of the product' })
+  @ApiResponse({ status: 200, description: 'Product updated successfully' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+    const result = await this.productsService.update(id, dto);
+    return {
+      message: 'Berhasil memperbarui produk',
       data: result,
     };
   }

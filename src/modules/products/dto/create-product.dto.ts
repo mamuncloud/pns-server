@@ -44,6 +44,12 @@ export class CreateVariantDto {
   @IsOptional()
   @IsString()
   sku?: string;
+
+  @ApiPropertyOptional({ example: 250, description: 'Size of this variant in grams' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  sizeInGram?: number;
 }
 
 export class CreateProductImageDto {
