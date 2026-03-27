@@ -5,31 +5,14 @@ import * as schema from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
-import { ProductVariantLabel } from '../products/dto/create-product.dto';
-import { InventoryService } from '../inventory/inventory.service';
 
 @Injectable()
 export class PurchasesService {
   constructor(
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
-    private readonly inventoryService: InventoryService,
   ) {}
 
-
-  private normalizeVariantLabel(label: ProductVariantLabel | string | undefined): string {
-    if (!label) return '250gr';
-    const labelStr = String(label).toLowerCase();
-    const labelMap: Record<string, string> = {
-      es3: 'ES3',
-      es4: 'ES4',
-      '250gr': '250gr',
-      '500gr': '500gr',
-      '1kg': '1kg',
-      bal: 'bal',
-    };
-    return labelMap[labelStr] || (labelStr as any);
-  }
 
   async create(dto: CreatePurchaseDto) {
     return await this.db.transaction(async (tx) => {
@@ -55,7 +38,7 @@ export class PurchasesService {
         // 3. Insert Purchase Item record
         const unitCost = (item.totalCost + item.extraCosts) / item.qty;
 
-        const [newItem] = await tx
+        await tx
           .insert(schema.purchaseItems)
           .values({
             purchaseId: purchase.id,
@@ -91,26 +74,6 @@ export class PurchasesService {
             .update(schema.products)
             .set({ currentHpp: newHpp })
             .where(eq(schema.products.id, item.productId));
-
-          await this.inventoryService.recordStockFromPurchase(
-            tx,
-            {
-              productId: item.productId,
-              purchaseItemId: newItem.id,
-              label: this.normalizeVariantLabel(item.variantLabel),
-              price: item.sellingPrice,
-              qty: item.qty,
-              expiredDate: item.expiredDate ? new Date(item.expiredDate) : undefined,
-            }
-          );
-
-          await tx.insert(schema.stockAdjustments).values({
-            productId: item.productId,
-            qty: item.qty,
-            reason: 'PURCHASE',
-            hppSnapshot: newHpp,
-            totalLoss: 0,
-          });
         }
       }
 
@@ -193,8 +156,6 @@ export class PurchasesService {
           });
 
           if (product) {
-            await this.inventoryService.removeStockByPurchaseItem(tx, item.id);
-
             const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
             const newHpp = Math.round(
               (totalCurrentStock * product.currentHpp - item.qty * item.unitCost) /
@@ -205,10 +166,6 @@ export class PurchasesService {
               .set({ currentHpp: Math.max(0, newHpp) })
               .where(eq(schema.products.id, item.productId));
           }
-
-          await tx
-            .delete(schema.stockAdjustments)
-            .where(eq(schema.stockAdjustments.productId, item.productId));
         }
       }
 
@@ -229,18 +186,12 @@ export class PurchasesService {
           })
           .where(eq(schema.purchases.id, id));
 
-        if (willBeCompleted) {
-          for (const existingItem of existingPurchase.items) {
-            await this.inventoryService.removeStockByPurchaseItem(tx, existingItem.id);
-          }
-        }
-
         await tx.delete(schema.purchaseItems).where(eq(schema.purchaseItems.purchaseId, id));
 
         for (const item of dto.items) {
           const unitCost = (item.totalCost + item.extraCosts) / item.qty;
 
-          const [newItem] = await tx
+          await tx
             .insert(schema.purchaseItems)
             .values({
               purchaseId: id,
@@ -275,26 +226,6 @@ export class PurchasesService {
               .update(schema.products)
               .set({ currentHpp: newHpp })
               .where(eq(schema.products.id, item.productId));
-
-            await this.inventoryService.recordStockFromPurchase(
-              tx,
-              {
-                productId: item.productId,
-                purchaseItemId: newItem.id,
-                label: this.normalizeVariantLabel(item.variantLabel),
-                price: item.sellingPrice,
-                qty: item.qty,
-                expiredDate: item.expiredDate ? new Date(item.expiredDate) : undefined,
-              }
-            );
-
-            await tx.insert(schema.stockAdjustments).values({
-              productId: item.productId,
-              qty: item.qty,
-              reason: 'PURCHASE',
-              hppSnapshot: newHpp,
-              totalLoss: 0,
-            });
           }
         }
       } else {
@@ -330,26 +261,6 @@ export class PurchasesService {
               .update(schema.products)
               .set({ currentHpp: newHpp })
               .where(eq(schema.products.id, item.productId));
-
-            await this.inventoryService.recordStockFromPurchase(
-              tx,
-              {
-                productId: item.productId,
-                purchaseItemId: item.id,
-                label: this.normalizeVariantLabel(item.variantLabel),
-                price: item.sellingPrice,
-                qty: item.qty,
-                expiredDate: item.expiredDate ? new Date(item.expiredDate) : undefined,
-              }
-            );
-
-            await tx.insert(schema.stockAdjustments).values({
-              productId: item.productId,
-              qty: item.qty,
-              reason: 'PURCHASE',
-              hppSnapshot: newHpp,
-              totalLoss: 0,
-            });
           }
         }
       }

@@ -6,12 +6,10 @@ import { HealthModule } from 'src/modules/health/health.module';
 import { HomeModule } from 'src/modules/home/home.module';
 import { ProductsModule } from 'src/modules/products/products.module';
 import { AuthModule } from 'src/modules/auth/auth.module';
-import { StockAdjustmentsModule } from 'src/modules/stock-adjustments/stock-adjustments.module';
 import { PurchasesModule } from 'src/modules/purchases/purchases.module';
 import { OrdersModule } from 'src/modules/orders/orders.module';
 import { StorageModule } from 'src/modules/storage/storage.module';
 import { SuppliersModule } from 'src/modules/suppliers/suppliers.module';
-import { InventoryModule } from 'src/modules/inventory/inventory.module';
 
 @Module({
   imports: [
@@ -24,12 +22,10 @@ import { InventoryModule } from 'src/modules/inventory/inventory.module';
     HomeModule,
     ProductsModule,
     AuthModule,
-    StockAdjustmentsModule,
     PurchasesModule,
     OrdersModule,
     StorageModule,
     SuppliersModule,
-    InventoryModule,
   ],
 })
 export class AppModule {}

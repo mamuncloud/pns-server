@@ -16,14 +16,6 @@ export const employeeRoleEnum = pgEnum("EmployeeRole", ["MANAGER", "CASHIER"]);
 
 export const pricingTypeEnum = pgEnum("PricingType", ["WEIGHT", "FIXED_PRICE", "BULK"]);
 
-export const adjustmentReasonEnum = pgEnum("AdjustmentReason", [
-  "DEFECT",
-  "EXPIRED",
-  "LOST",
-  "RESTOCK",
-  "PURCHASE",
-]);
-
 export const productTasteEnum = pgEnum("ProductTaste", ["GURIH", "PEDAS", "MANIS"]);
 
 export const productVariantLabelEnum = pgEnum("ProductVariantLabel", [
@@ -107,7 +99,6 @@ export const productVariants = pgTable("product_variants", {
   productId: varchar("productId", { length: 255 })
     .references(() => products.id, { onDelete: "cascade" })
     .notNull(),
-  purchaseItemId: varchar('purchase_item_id', { length: 255 }).references(() => purchaseItems.id),
   label: productVariantLabelEnum("label").notNull(),
   price: integer("price").notNull(),
   stock: integer("stock").default(0).notNull(),
@@ -170,17 +161,6 @@ export const orderItems = pgTable("order_items", {
     .$onUpdate(() => new Date()),
 });
 
-export const stockAdjustments = pgTable("stock_adjustments", {
-  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
-  productId: varchar("productId", { length: 255 })
-    .references(() => products.id, { onDelete: "cascade" })
-    .notNull(),
-  qty: integer("qty").notNull(),
-  reason: adjustmentReasonEnum("reason").notNull(),
-  hppSnapshot: integer("hppSnapshot").notNull(),
-  totalLoss: integer("totalLoss").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
 
 export const loyaltyPoints = pgTable("loyalty_points", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -280,7 +260,6 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   }),
   variants: many(productVariants),
   pricingRules: many(pricingRules),
-  stockAdjustments: many(stockAdjustments),
   images: many(productImages),
 }));
 
@@ -303,21 +282,11 @@ export const pricingRulesRelations = relations(pricingRules, ({ one, many }) => 
   orderItems: many(orderItems),
 }));
 
-export const stockAdjustmentsRelations = relations(stockAdjustments, ({ one }) => ({
-  product: one(products, {
-    fields: [stockAdjustments.productId],
-    references: [products.id],
-  }),
-}));
 
 export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
   product: one(products, {
     fields: [productVariants.productId],
     references: [products.id],
-  }),
-  purchaseItem: one(purchaseItems, {
-    fields: [productVariants.purchaseItemId],
-    references: [purchaseItems.id],
   }),
   orderItems: many(orderItems),
 }));
@@ -372,9 +341,5 @@ export const purchaseItemsRelations = relations(purchaseItems, ({ one }) => ({
   product: one(products, {
     fields: [purchaseItems.productId],
     references: [products.id],
-  }),
-  variant: one(productVariants, {
-    fields: [purchaseItems.id],
-    references: [productVariants.purchaseItemId],
   }),
 }));
