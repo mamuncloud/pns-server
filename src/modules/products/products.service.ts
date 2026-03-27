@@ -103,10 +103,26 @@ export class ProductsService {
     const primaryImage = normalizedImages.find((img) => img.isPrimary) || normalizedImages[0];
     const displayImageUrl = primaryImage ? primaryImage.url : this.normalizeImageUrl(null);
 
+    // Get latest supplier for this product
+    const latestPurchaseItem = await this.db.query.purchaseItems.findFirst({
+      where: eq(schema.purchaseItems.productId, id),
+      with: {
+        purchase: {
+          with: {
+            supplier: true,
+          },
+        },
+      },
+      orderBy: (items, { desc }) => [desc(items.createdAt)],
+    });
+
+    const latestSupplier = latestPurchaseItem?.purchase?.supplier || null;
+
     return {
       ...product,
       images: normalizedImages,
       imageUrl: displayImageUrl,
+      latestSupplier,
     };
   }
 
