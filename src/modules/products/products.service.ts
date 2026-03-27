@@ -5,6 +5,7 @@ import * as schema from '../../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { ConfigService } from '@nestjs/config';
 import { CreateProductDto } from './dto/create-product.dto';
+import { CreateBrandDto } from './dto/create-brand.dto';
 
 @Injectable()
 export class ProductsService {
@@ -171,5 +172,15 @@ export class ProductsService {
     return this.db.query.brands.findMany({
       orderBy: (brands, { asc }) => [asc(brands.name)],
     });
+  }
+
+  async createBrand(dto: CreateBrandDto) {
+    const [brand] = await this.db
+      .insert(schema.brands)
+      .values({
+        name: dto.name,
+      })
+      .returning();
+    return brand;
   }
 }

@@ -1,6 +1,7 @@
 import { Controller, Get, Param, NotFoundException, Query, Post, Body } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { CreateBrandDto } from './dto/create-brand.dto';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam } from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
@@ -22,6 +23,17 @@ export class ProductsController {
     return {
       message: 'Berhasil mengambil semua brand',
       data: brands,
+    };
+  }
+
+  @Post('brands')
+  @ApiOperation({ summary: 'Create new brand' })
+  @ApiResponse({ status: 201, description: 'Brand created successfully' })
+  async createBrand(@Body() dto: CreateBrandDto) {
+    const brand = await this.productsService.createBrand(dto);
+    return {
+      message: 'Berhasil membuat brand baru',
+      data: brand,
     };
   }
 
