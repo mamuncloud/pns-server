@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param } from '@nestjs/common';
 import { PurchasesService } from './purchases.service';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
+import { UpdatePurchaseDto } from './dto/update-purchase.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('Purchases')
@@ -25,5 +26,12 @@ export class PurchasesController {
   @ApiOperation({ summary: 'Mendapatkan detail pembelian berdasarkan ID' })
   findOne(@Param('id') id: string) {
     return this.purchasesService.findOne(id);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Memperbarui transaksi pembelian' })
+  @ApiResponse({ status: 200, description: 'Pembelian berhasil diperbarui.' })
+  update(@Param('id') id: string, @Body() updatePurchaseDto: UpdatePurchaseDto) {
+    return this.purchasesService.update(id, updatePurchaseDto);
   }
 }
