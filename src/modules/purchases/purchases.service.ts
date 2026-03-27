@@ -74,6 +74,29 @@ export class PurchasesService {
             .update(schema.products)
             .set({ currentHpp: newHpp })
             .where(eq(schema.products.id, item.productId));
+
+          // Update stock on the matching product variant
+          if (item.variantLabel) {
+            const existingVariant = product.variants.find(
+              (v: any) => v.label === item.variantLabel,
+            );
+
+            if (existingVariant) {
+              await tx
+                .update(schema.productVariants)
+                .set({ stock: existingVariant.stock + item.qty })
+                .where(eq(schema.productVariants.id, existingVariant.id));
+            } else {
+              // Auto-create variant if it doesn't exist
+              await tx.insert(schema.productVariants).values({
+                productId: item.productId,
+                label: item.variantLabel,
+                price: item.sellingPrice,
+                stock: item.qty,
+                expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
+              });
+            }
+          }
         }
       }
 
@@ -157,14 +180,30 @@ export class PurchasesService {
 
           if (product) {
             const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
-            const newHpp = Math.round(
-              (totalCurrentStock * product.currentHpp - item.qty * item.unitCost) /
-                (totalCurrentStock - item.qty),
-            );
+            const remainingStock = totalCurrentStock - item.qty;
+            const newHpp = remainingStock > 0
+              ? Math.round(
+                  (totalCurrentStock * product.currentHpp - item.qty * item.unitCost) /
+                    remainingStock,
+                )
+              : 0;
             await tx
               .update(schema.products)
               .set({ currentHpp: Math.max(0, newHpp) })
               .where(eq(schema.products.id, item.productId));
+
+            // Decrement stock on the matching product variant
+            if (item.variantLabel) {
+              const matchingVariant = product.variants.find(
+                (v: any) => v.label === item.variantLabel,
+              );
+              if (matchingVariant) {
+                await tx
+                  .update(schema.productVariants)
+                  .set({ stock: Math.max(0, matchingVariant.stock - item.qty) })
+                  .where(eq(schema.productVariants.id, matchingVariant.id));
+              }
+            }
           }
         }
       }
@@ -226,6 +265,28 @@ export class PurchasesService {
               .update(schema.products)
               .set({ currentHpp: newHpp })
               .where(eq(schema.products.id, item.productId));
+
+            // Update stock on the matching product variant
+            if (item.variantLabel) {
+              const existingVariant = product.variants.find(
+                (v: any) => v.label === item.variantLabel,
+              );
+
+              if (existingVariant) {
+                await tx
+                  .update(schema.productVariants)
+                  .set({ stock: existingVariant.stock + item.qty })
+                  .where(eq(schema.productVariants.id, existingVariant.id));
+              } else {
+                await tx.insert(schema.productVariants).values({
+                  productId: item.productId,
+                  label: item.variantLabel,
+                  price: item.sellingPrice,
+                  stock: item.qty,
+                  expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
+                });
+              }
+            }
           }
         }
       } else {
@@ -261,6 +322,28 @@ export class PurchasesService {
               .update(schema.products)
               .set({ currentHpp: newHpp })
               .where(eq(schema.products.id, item.productId));
+
+            // Update stock on the matching product variant
+            if (item.variantLabel) {
+              const existingVariant = product.variants.find(
+                (v: any) => v.label === item.variantLabel,
+              );
+
+              if (existingVariant) {
+                await tx
+                  .update(schema.productVariants)
+                  .set({ stock: existingVariant.stock + item.qty })
+                  .where(eq(schema.productVariants.id, existingVariant.id));
+              } else {
+                await tx.insert(schema.productVariants).values({
+                  productId: item.productId,
+                  label: item.variantLabel,
+                  price: item.sellingPrice,
+                  stock: item.qty,
+                  expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
+                });
+              }
+            }
           }
         }
       }
