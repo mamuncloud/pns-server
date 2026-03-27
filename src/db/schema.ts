@@ -35,6 +35,8 @@ export const productVariantLabelEnum = pgEnum("ProductVariantLabel", [
   "bal",
 ]);
 
+export const purchaseStatusEnum = pgEnum("PurchaseStatus", ["DRAFT", "COMPLETED"]);
+
 // Tables
 export const users = pgTable("users", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -220,6 +222,7 @@ export const purchases = pgTable("purchases", {
     .notNull(),
   date: timestamp("date").notNull(),
   note: text("note"),
+  status: purchaseStatusEnum("status").default("DRAFT").notNull(),
   totalAmount: integer("totalAmount").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")

@@ -9,6 +9,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import * as express from 'express';
 import { join } from 'path';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { HttpAdapterHost } from '@nestjs/core';
+
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -41,7 +44,10 @@ async function bootstrap() {
     allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
+  const httpAdapterHost = app.get(HttpAdapterHost);
+  app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost));
   app.useGlobalInterceptors(new ResponseInterceptor());
+
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     forbidNonWhitelisted: true,

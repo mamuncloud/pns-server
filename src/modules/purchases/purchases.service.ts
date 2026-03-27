@@ -28,73 +28,15 @@ export class PurchasesService {
           supplierId: dto.supplierId,
           date: new Date(dto.date),
           note: dto.note,
+          status: dto.status || 'DRAFT',
           totalAmount,
         })
         .returning();
 
       for (const item of dto.items) {
-        // 3. Get product and current stock/HPP
-        const product = await tx.query.products.findFirst({
-          where: eq(schema.products.id, item.productId),
-          with: {
-            variants: true,
-          },
-        });
-
-        if (!product) {
-          throw new NotFoundException(
-            `Produk dengan ID ${item.productId} tidak ditemukan`,
-          );
-        }
-
-        // Total stock across all variants for HPP calculation
-        const totalCurrentStock = product.variants.reduce(
-          (acc, v) => acc + v.stock,
-          0,
-        );
+        // 3. Insert Purchase Item record
         const unitCost = (item.totalCost + item.extraCosts) / item.qty;
-
-        // 4. Calculate New HPP (Weighted Average)
-        // Formula: (currentStock * lastHpp + newQty * unitCost) / (currentStock + newQty)
-        const newHpp = Math.round(
-          (totalCurrentStock * product.currentHpp + item.qty * unitCost) /
-            (totalCurrentStock + item.qty),
-        );
-
-        // 5. Update Product HPP
-        await tx
-          .update(schema.products)
-          .set({ currentHpp: newHpp })
-          .where(eq(schema.products.id, item.productId));
-
-        // 6. Find or Create Variant
-        const variant = product.variants.find((v) => v.label === item.variantLabel);
-
-        if (!variant) {
-          // If variantLabel is not provided, we need a default from the enum
-          const defaultLabel = item.variantLabel || ProductVariantLabel['250GR'];
-
-          await tx
-            .insert(schema.productVariants)
-            .values({
-              productId: item.productId,
-              label: defaultLabel,
-              price: item.sellingPrice,
-              stock: item.qty,
-            })
-            .returning();
-        } else {
-          // Update existing variant stock and price
-          await tx
-            .update(schema.productVariants)
-            .set({
-              stock: variant.stock + item.qty,
-              price: item.sellingPrice,
-            })
-            .where(eq(schema.productVariants.id, variant.id));
-        }
-
-        // 7. Insert Purchase Item record
+        
         await tx.insert(schema.purchaseItems).values({
           purchaseId: purchase.id,
           productId: item.productId,
@@ -107,14 +49,74 @@ export class PurchasesService {
           expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
         });
 
-        // 8. Record Stock Adjustment for Audit Trail
-        await tx.insert(schema.stockAdjustments).values({
-          productId: item.productId,
-          qty: item.qty,
-          reason: 'PURCHASE',
-          hppSnapshot: newHpp,
-          totalLoss: 0,
-        });
+        // Skip stock and HPP updates if it's a DRAFT
+        if (dto.status === 'COMPLETED') {
+          // 4. Get product and current stock/HPP
+          const product = await tx.query.products.findFirst({
+            where: eq(schema.products.id, item.productId),
+            with: {
+              variants: true,
+            },
+          });
+
+          if (!product) {
+            throw new NotFoundException(
+              `Produk dengan ID ${item.productId} tidak ditemukan`,
+            );
+          }
+
+          // Total stock across all variants for HPP calculation
+          const totalCurrentStock = product.variants.reduce(
+            (acc, v) => acc + v.stock,
+            0,
+          );
+
+          // 5. Calculate New HPP (Weighted Average)
+          const newHpp = Math.round(
+            (totalCurrentStock * product.currentHpp + item.qty * unitCost) /
+              (totalCurrentStock + item.qty),
+          );
+
+          // 6. Update Product HPP
+          await tx
+            .update(schema.products)
+            .set({ currentHpp: newHpp })
+            .where(eq(schema.products.id, item.productId));
+
+          // 7. Find or Create Variant
+          const variant = product.variants.find((v) => v.label === item.variantLabel);
+
+          if (!variant) {
+            const defaultLabel = item.variantLabel || ProductVariantLabel['250GR'];
+
+            await tx
+              .insert(schema.productVariants)
+              .values({
+                productId: item.productId,
+                label: defaultLabel,
+                price: item.sellingPrice,
+                stock: item.qty,
+              })
+              .returning();
+          } else {
+            await tx
+              .update(schema.productVariants)
+              .set({
+                stock: variant.stock + item.qty,
+                price: item.sellingPrice,
+              })
+              .where(eq(schema.productVariants.id, variant.id));
+          }
+
+          // 8. Record Stock Adjustment for Audit Trail
+          await tx.insert(schema.stockAdjustments).values({
+            productId: item.productId,
+            qty: item.qty,
+            reason: 'PURCHASE',
+            hppSnapshot: newHpp,
+            totalLoss: 0,
+          });
+        }
       }
 
       return {

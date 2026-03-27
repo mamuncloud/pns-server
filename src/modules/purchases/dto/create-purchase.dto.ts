@@ -58,4 +58,9 @@ export class CreatePurchaseDto {
   @ValidateNested({ each: true })
   @Type(() => PurchaseItemDto)
   items: PurchaseItemDto[];
+
+  @ApiProperty({ enum: ['DRAFT', 'COMPLETED'], example: 'DRAFT' })
+  @IsEnum(['DRAFT', 'COMPLETED'])
+  @IsOptional()
+  status?: 'DRAFT' | 'COMPLETED';
 }

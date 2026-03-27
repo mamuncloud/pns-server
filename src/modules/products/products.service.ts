@@ -50,6 +50,7 @@ export class ProductsService {
       orderBy: (products, { desc }) => [desc(products.createdAt)],
     });
 
+
     const data = rawData.map((product) => {
       const normalizedImages = (product.images || []).map((img) => ({
         ...img,
