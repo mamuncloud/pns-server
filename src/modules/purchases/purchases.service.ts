@@ -14,47 +14,34 @@ export class PurchasesService {
     private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
-  private async findOrCreateVariant(
+  private async createVariantBatch(
     tx: any,
     productId: string,
     variantLabel: ProductVariantLabel | string | undefined,
     sellingPrice: number,
     qty: number,
+    purchaseItemId: string,
+    expiredDate?: Date | null,
   ) {
-    const product = await tx.query.products.findFirst({
-      where: eq(schema.products.id, productId),
-      with: { variants: true },
-    });
-
-    if (!product) {
-      throw new NotFoundException(`Produk dengan ID ${productId} tidak ditemukan`);
-    }
-
     const normalizedLabel = this.normalizeVariantLabel(variantLabel);
-    const existingVariant = product.variants.find((v: any) => v.label === normalizedLabel);
+    const [newVariant] = await tx
+      .insert(schema.productVariants)
+      .values({
+        productId,
+        purchaseItemId,
+        label: normalizedLabel as any,
+        price: sellingPrice,
+        stock: qty,
+        expiredDate,
+      })
+      .returning();
+    return newVariant;
+  }
 
-    if (!existingVariant) {
-      const defaultLabel = (normalizedLabel || '250gr') as ProductVariantLabel;
-      const [newVariant] = await tx
-        .insert(schema.productVariants)
-        .values({
-          productId,
-          label: defaultLabel,
-          price: sellingPrice,
-          stock: qty,
-        })
-        .returning();
-      return { variant: newVariant, isNew: true };
-    } else {
-      await tx
-        .update(schema.productVariants)
-        .set({
-          stock: existingVariant.stock + qty,
-          price: sellingPrice,
-        })
-        .where(eq(schema.productVariants.id, existingVariant.id));
-      return { variant: { ...existingVariant, stock: existingVariant.stock + qty }, isNew: false };
-    }
+  private async removeVariantBatch(tx: any, purchaseItemId: string) {
+    await tx
+      .delete(schema.productVariants)
+      .where(eq(schema.productVariants.purchaseItemId, purchaseItemId));
   }
 
   private normalizeVariantLabel(label: ProductVariantLabel | string | undefined): string {
@@ -69,48 +56,6 @@ export class PurchasesService {
       bal: 'bal',
     };
     return labelMap[labelStr] || (labelStr as any);
-  }
-
-  private async updateVariantStock(
-    tx: any,
-    productId: string,
-    variantLabel: ProductVariantLabel | string | undefined,
-    qtyChange: number,
-    sellingPrice: number,
-  ) {
-    const product = await tx.query.products.findFirst({
-      where: eq(schema.products.id, productId),
-      with: { variants: true },
-    });
-
-    if (!product) {
-      throw new NotFoundException(`Produk dengan ID ${productId} tidak ditemukan`);
-    }
-
-    const normalizedLabel = this.normalizeVariantLabel(variantLabel);
-    const existingVariant = product.variants.find((v: any) => v.label === normalizedLabel);
-
-    if (!existingVariant) {
-      const defaultLabel = (normalizedLabel || '250gr') as ProductVariantLabel;
-      await tx
-        .insert(schema.productVariants)
-        .values({
-          productId,
-          label: defaultLabel,
-          price: sellingPrice,
-          stock: qtyChange,
-        })
-        .returning();
-    } else {
-      const newStock = Math.max(0, existingVariant.stock + qtyChange);
-      await tx
-        .update(schema.productVariants)
-        .set({
-          stock: newStock,
-          price: sellingPrice,
-        })
-        .where(eq(schema.productVariants.id, existingVariant.id));
-    }
   }
 
   async create(dto: CreatePurchaseDto) {
@@ -137,17 +82,20 @@ export class PurchasesService {
         // 3. Insert Purchase Item record
         const unitCost = (item.totalCost + item.extraCosts) / item.qty;
 
-        await tx.insert(schema.purchaseItems).values({
-          purchaseId: purchase.id,
-          productId: item.productId,
-          variantLabel: item.variantLabel,
-          qty: item.qty,
-          totalCost: item.totalCost,
-          extraCosts: item.extraCosts,
-          unitCost: Math.round(unitCost),
-          sellingPrice: item.sellingPrice,
-          expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
-        });
+        const [newItem] = await tx
+          .insert(schema.purchaseItems)
+          .values({
+            purchaseId: purchase.id,
+            productId: item.productId,
+            variantLabel: item.variantLabel,
+            qty: item.qty,
+            totalCost: item.totalCost,
+            extraCosts: item.extraCosts,
+            unitCost: Math.round(unitCost),
+            sellingPrice: item.sellingPrice,
+            expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
+          })
+          .returning();
 
         // Skip stock and HPP updates if it's a DRAFT
         if (dto.status === 'COMPLETED') {
@@ -171,12 +119,14 @@ export class PurchasesService {
             .set({ currentHpp: newHpp })
             .where(eq(schema.products.id, item.productId));
 
-          await this.findOrCreateVariant(
+          await this.createVariantBatch(
             tx,
             item.productId,
             item.variantLabel,
             item.sellingPrice,
             item.qty,
+            newItem.id,
+            item.expiredDate ? new Date(item.expiredDate) : null,
           );
 
           await tx.insert(schema.stockAdjustments).values({
@@ -268,13 +218,7 @@ export class PurchasesService {
           });
 
           if (product) {
-            const variant = product.variants.find((v: any) => v.label === item.variantLabel);
-            if (variant) {
-              await tx
-                .update(schema.productVariants)
-                .set({ stock: variant.stock - item.qty })
-                .where(eq(schema.productVariants.id, variant.id));
-            }
+            await this.removeVariantBatch(tx, item.id);
 
             const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
             const newHpp = Math.round(
@@ -312,13 +256,7 @@ export class PurchasesService {
 
         if (willBeCompleted) {
           for (const existingItem of existingPurchase.items) {
-            await this.updateVariantStock(
-              tx,
-              existingItem.productId,
-              existingItem.variantLabel,
-              -existingItem.qty,
-              existingItem.sellingPrice,
-            );
+            await this.removeVariantBatch(tx, existingItem.id);
           }
         }
 
@@ -327,17 +265,20 @@ export class PurchasesService {
         for (const item of dto.items) {
           const unitCost = (item.totalCost + item.extraCosts) / item.qty;
 
-          await tx.insert(schema.purchaseItems).values({
-            purchaseId: id,
-            productId: item.productId,
-            variantLabel: item.variantLabel,
-            qty: item.qty,
-            totalCost: item.totalCost,
-            extraCosts: item.extraCosts,
-            unitCost: Math.round(unitCost),
-            sellingPrice: item.sellingPrice,
-            expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
-          });
+          const [newItem] = await tx
+            .insert(schema.purchaseItems)
+            .values({
+              purchaseId: id,
+              productId: item.productId,
+              variantLabel: item.variantLabel,
+              qty: item.qty,
+              totalCost: item.totalCost,
+              extraCosts: item.extraCosts,
+              unitCost: Math.round(unitCost),
+              sellingPrice: item.sellingPrice,
+              expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
+            })
+            .returning();
 
           if (willBeCompleted) {
             const product = await tx.query.products.findFirst({
@@ -360,12 +301,14 @@ export class PurchasesService {
               .set({ currentHpp: newHpp })
               .where(eq(schema.products.id, item.productId));
 
-            await this.updateVariantStock(
+            await this.createVariantBatch(
               tx,
               item.productId,
               item.variantLabel,
-              item.qty,
               item.sellingPrice,
+              item.qty,
+              newItem.id,
+              item.expiredDate ? new Date(item.expiredDate) : null,
             );
 
             await tx.insert(schema.stockAdjustments).values({
@@ -411,12 +354,14 @@ export class PurchasesService {
               .set({ currentHpp: newHpp })
               .where(eq(schema.products.id, item.productId));
 
-            await this.findOrCreateVariant(
+            await this.createVariantBatch(
               tx,
               item.productId,
               item.variantLabel,
               item.sellingPrice,
               item.qty,
+              item.id,
+              item.expiredDate,
             );
 
             await tx.insert(schema.stockAdjustments).values({

@@ -107,10 +107,12 @@ export const productVariants = pgTable("product_variants", {
   productId: varchar("productId", { length: 255 })
     .references(() => products.id, { onDelete: "cascade" })
     .notNull(),
+  purchaseItemId: varchar('purchase_item_id', { length: 255 }).references(() => purchaseItems.id),
   label: productVariantLabelEnum("label").notNull(),
   price: integer("price").notNull(),
   stock: integer("stock").default(0).notNull(),
   sku: varchar("sku", { length: 255 }).unique(),
+  expiredDate: timestamp("expiredDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -313,6 +315,10 @@ export const productVariantsRelations = relations(productVariants, ({ one, many 
     fields: [productVariants.productId],
     references: [products.id],
   }),
+  purchaseItem: one(purchaseItems, {
+    fields: [productVariants.purchaseItemId],
+    references: [purchaseItems.id],
+  }),
   orderItems: many(orderItems),
 }));
 
@@ -366,5 +372,9 @@ export const purchaseItemsRelations = relations(purchaseItems, ({ one }) => ({
   product: one(products, {
     fields: [purchaseItems.productId],
     references: [products.id],
+  }),
+  variant: one(productVariants, {
+    fields: [purchaseItems.id],
+    references: [productVariants.purchaseItemId],
   }),
 }));

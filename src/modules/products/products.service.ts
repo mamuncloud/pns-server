@@ -84,7 +84,19 @@ export class ProductsService {
     const product = await this.db.query.products.findFirst({
       where: eq(schema.products.id, id),
       with: {
-        variants: true,
+        variants: {
+          with: {
+            purchaseItem: {
+              with: {
+                purchase: {
+                  with: {
+                    supplier: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         brand: true,
         pricingRules: true,
         images: true,
