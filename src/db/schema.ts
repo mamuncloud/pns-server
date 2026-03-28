@@ -86,7 +86,6 @@ export const products = pgTable("products", {
     .notNull()
     .default(sql`'{}'::"ProductTaste"[]`),
   isActive: boolean("isActive").default(true).notNull(),
-  currentHpp: integer("currentHpp").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()

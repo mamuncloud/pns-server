@@ -68,12 +68,28 @@ export class ProductsService {
       const primaryImage = normalizedImages.find((img) => img.isPrimary) || normalizedImages[0];
       const displayImageUrl = primaryImage ? primaryImage.url : this.normalizeImageUrl(null);
 
+      // Get latest HPP for each product
+      // Note: In a production environment with large datasets, this should be optimized 
+      // with a subquery or a dedicated materialized view for performance.
       return {
         ...product,
         images: normalizedImages,
         imageUrl: displayImageUrl,
       };
     });
+
+    const productsWithHpp = await Promise.all(
+      data.map(async (product) => {
+        const latestItem = await this.db.query.purchaseItems.findFirst({
+          where: eq(schema.purchaseItems.productId, product.id),
+          orderBy: (items, { desc }) => [desc(items.createdAt)],
+        });
+        return {
+          ...product,
+          currentHpp: latestItem?.unitCost || 0,
+        };
+      }),
+    );
 
     const totalItemsResult = await this.db
       .select({ count: sql<number>`count(*)` })
@@ -82,7 +98,7 @@ export class ProductsService {
     const totalItems = Number(totalItemsResult[0].count);
 
     return {
-      data,
+      data: productsWithHpp,
       totalItems,
     };
   }
@@ -124,12 +140,14 @@ export class ProductsService {
     });
 
     const latestSupplier = latestPurchaseItem?.purchase?.supplier || null;
+    const currentHpp = latestPurchaseItem?.unitCost || 0;
 
     return {
       ...product,
       images: normalizedImages,
       imageUrl: displayImageUrl,
       latestSupplier,
+      currentHpp,
     };
   }
 

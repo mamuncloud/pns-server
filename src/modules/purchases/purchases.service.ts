@@ -65,15 +65,6 @@ export class PurchasesService {
           }
 
           const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
-          const newHpp = Math.round(
-            (totalCurrentStock * product.currentHpp + item.qty * unitCost) /
-              (totalCurrentStock + item.qty),
-          );
-
-          await tx
-            .update(schema.products)
-            .set({ currentHpp: newHpp })
-            .where(eq(schema.products.id, item.productId));
 
           // Update stock on the matching product variant
           if (item.variantLabel) {
@@ -179,19 +170,6 @@ export class PurchasesService {
           });
 
           if (product) {
-            const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
-            const remainingStock = totalCurrentStock - item.qty;
-            const newHpp = remainingStock > 0
-              ? Math.round(
-                  (totalCurrentStock * product.currentHpp - item.qty * item.unitCost) /
-                    remainingStock,
-                )
-              : 0;
-            await tx
-              .update(schema.products)
-              .set({ currentHpp: Math.max(0, newHpp) })
-              .where(eq(schema.products.id, item.productId));
-
             // Decrement stock on the matching product variant
             if (item.variantLabel) {
               const matchingVariant = product.variants.find(
@@ -256,15 +234,7 @@ export class PurchasesService {
             }
 
             const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
-            const newHpp = Math.round(
-              (totalCurrentStock * product.currentHpp + item.qty * unitCost) /
-                (totalCurrentStock + item.qty),
-            );
-
-            await tx
-              .update(schema.products)
-              .set({ currentHpp: newHpp })
-              .where(eq(schema.products.id, item.productId));
+            // Update stock on the matching product variant
 
             // Update stock on the matching product variant
             if (item.variantLabel) {
@@ -313,15 +283,7 @@ export class PurchasesService {
             }
 
             const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
-            const newHpp = Math.round(
-              (totalCurrentStock * product.currentHpp + item.qty * unitCost) /
-                (totalCurrentStock + item.qty),
-            );
-
-            await tx
-              .update(schema.products)
-              .set({ currentHpp: newHpp })
-              .where(eq(schema.products.id, item.productId));
+            // Update stock on the matching product variant
 
             // Update stock on the matching product variant
             if (item.variantLabel) {
