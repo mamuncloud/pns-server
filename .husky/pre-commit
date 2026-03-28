@@ -2,5 +2,5 @@
 . "$(dirname "$0")/_/husky.sh"
 
 echo "🧹 Running pre-commit cleanup..."
-bun run cleanup
-npx lint-staged
+bun run cleanup || exit 1
+bun x lint-staged || exit 1

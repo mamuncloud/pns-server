@@ -64,8 +64,6 @@ export class PurchasesService {
             throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
           }
 
-          const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
-
           // Update stock on the matching product variant
           if (item.variantLabel) {
             const existingVariant = product.variants.find(
@@ -237,7 +235,6 @@ export class PurchasesService {
               throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
             }
 
-            const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
             // Update stock on the matching product variant
 
             // Update stock on the matching product variant
@@ -290,7 +287,6 @@ export class PurchasesService {
               throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
             }
 
-            const totalCurrentStock = product.variants.reduce((acc, v: any) => acc + v.stock, 0);
             // Update stock on the matching product variant
 
             // Update stock on the matching product variant

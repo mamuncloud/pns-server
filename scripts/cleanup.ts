@@ -6,12 +6,13 @@ console.log("🚀 Starting automated cleanup...");
 
 // 1. Run ESLint Fix
 console.log("🔍 Running ESLint to remove unused code...");
-const eslintResult = spawnSync("bun", ["eslint", "src", "--fix"], {
+const eslintResult = spawnSync("bun", ["eslint", "src", "--fix", "--max-warnings", "0"], {
   stdio: "inherit",
 });
 
 if (eslintResult.status !== 0) {
-  console.warn("⚠️ ESLint finished with some issues (possibly non-fixable).");
+  console.error("❌ ESLint failed with errors or warnings. Please fix them before committing.");
+  process.exit(1);
 }
 
 // 2. Run Knip to find unused files
