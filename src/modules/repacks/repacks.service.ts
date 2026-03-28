@@ -64,10 +64,15 @@ export class RepacksService {
         })
         .where(eq(schema.productVariants.id, dto.sourceVariantId));
 
-      // 4. Process each output item
+      // 4. Calculate unit HPP for target variants based on source cost
+      const totalUnitsProduced = dto.items.reduce((acc, item) => acc + item.qtyProduced, 0);
+      const totalSourceCost = (sourceVariant.hpp || 0) * dto.sourceQtyUsed;
+      const unitHpp = totalUnitsProduced > 0 ? Math.round(totalSourceCost / totalUnitsProduced) : 0;
+
+      // 5. Process each output item
       for (const item of dto.items) {
         // Find the target variant by label and productId
-        const targetVariant = await tx.query.productVariants.findFirst({
+        let targetVariant = await tx.query.productVariants.findFirst({
           where: and(
             eq(schema.productVariants.productId, dto.productId),
             eq(schema.productVariants.label, item.targetVariantLabel as any),
@@ -75,9 +80,18 @@ export class RepacksService {
         });
 
         if (!targetVariant) {
-          throw new NotFoundException(
-            `Varian target dengan label "${item.targetVariantLabel}" tidak ditemukan untuk produk ini`,
-          );
+          // Auto-create variant if it doesn't exist
+          const [newVariant] = await tx
+            .insert(schema.productVariants)
+            .values({
+              productId: dto.productId,
+              label: item.targetVariantLabel as any,
+              price: item.sellingPrice,
+              hpp: unitHpp,
+              stock: 0, // Will be updated below
+            })
+            .returning();
+          targetVariant = newVariant;
         }
 
         // Create repack item record
@@ -93,6 +107,7 @@ export class RepacksService {
           .update(schema.productVariants)
           .set({
             stock: targetVariant.stock + item.qtyProduced,
+            hpp: unitHpp, // Update HPP to latest repack cost
           })
           .where(eq(schema.productVariants.id, targetVariant.id));
       }
