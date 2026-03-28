@@ -117,4 +117,15 @@ export class AuthService {
       user: entity,
     };
   }
+
+  reissueToken(user: { id: string; email: string; role: string; name: string; type: string }) {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      type: user.type,
+    };
+    return { access_token: this.jwtService.sign(payload) };
+  }
 }

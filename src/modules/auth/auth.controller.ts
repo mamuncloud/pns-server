@@ -1,8 +1,9 @@
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -23,5 +24,15 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid or expired token' })
   async verifyLogin(@Query('token') token: string) {
     return this.authService.verifyLogin(token);
+  }
+
+  @Post('reissue')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Re-issue a fresh JWT for an active authenticated user' })
+  @ApiResponse({ status: 201, description: 'New access token issued' })
+  @ApiResponse({ status: 401, description: 'Token expired or invalid' })
+  reissueToken(@Request() req: { user: { id: string; email: string; role: string; name: string; type: string } }) {
+    return this.authService.reissueToken(req.user);
   }
 }
