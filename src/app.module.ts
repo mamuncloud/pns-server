@@ -11,6 +11,7 @@ import { OrdersModule } from 'src/modules/orders/orders.module';
 import { StorageModule } from 'src/modules/storage/storage.module';
 import { SuppliersModule } from 'src/modules/suppliers/suppliers.module';
 import { StoreSettingsModule } from 'src/modules/store-settings/store-settings.module';
+import { RepacksModule } from 'src/modules/repacks/repacks.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StoreSettingsModule } from 'src/modules/store-settings/store-settings.m
     StorageModule,
     SuppliersModule,
     StoreSettingsModule,
+    RepacksModule,
   ],
 })
 export class AppModule {}

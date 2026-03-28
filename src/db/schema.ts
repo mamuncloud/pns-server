@@ -242,6 +242,36 @@ export const storeSettings = pgTable("store_settings", {
     .$onUpdate(() => new Date()),
 });
 
+export const repacks = pgTable("repacks", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  productId: varchar("productId", { length: 255 })
+    .references(() => products.id)
+    .notNull(),
+  sourceVariantId: varchar("sourceVariantId", { length: 255 })
+    .references(() => productVariants.id)
+    .notNull(),
+  sourceQtyUsed: integer("sourceQtyUsed").notNull(),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const repackItems = pgTable("repack_items", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  repackId: varchar("repackId", { length: 255 })
+    .references(() => repacks.id, { onDelete: "cascade" })
+    .notNull(),
+  targetVariantId: varchar("targetVariantId", { length: 255 })
+    .references(() => productVariants.id)
+    .notNull(),
+  qtyProduced: integer("qtyProduced").notNull(),
+  sellingPrice: integer("sellingPrice").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
@@ -271,6 +301,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   variants: many(productVariants),
   pricingRules: many(pricingRules),
   images: many(productImages),
+  repacks: many(repacks),
 }));
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
@@ -299,6 +330,8 @@ export const productVariantsRelations = relations(productVariants, ({ one, many 
     references: [products.id],
   }),
   orderItems: many(orderItems),
+  repacksAsSource: many(repacks),
+  repacksAsTarget: many(repackItems),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
@@ -351,5 +384,28 @@ export const purchaseItemsRelations = relations(purchaseItems, ({ one }) => ({
   product: one(products, {
     fields: [purchaseItems.productId],
     references: [products.id],
+  }),
+}));
+
+export const repacksRelations = relations(repacks, ({ one, many }) => ({
+  product: one(products, {
+    fields: [repacks.productId],
+    references: [products.id],
+  }),
+  sourceVariant: one(productVariants, {
+    fields: [repacks.sourceVariantId],
+    references: [productVariants.id],
+  }),
+  items: many(repackItems),
+}));
+
+export const repackItemsRelations = relations(repackItems, ({ one }) => ({
+  repack: one(repacks, {
+    fields: [repackItems.repackId],
+    references: [repacks.id],
+  }),
+  targetVariant: one(productVariants, {
+    fields: [repackItems.targetVariantId],
+    references: [productVariants.id],
   }),
 }));
