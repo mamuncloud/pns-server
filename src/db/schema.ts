@@ -100,6 +100,7 @@ export const productVariants = pgTable("product_variants", {
     .notNull(),
   label: productVariantLabelEnum("label").notNull(),
   price: integer("price").notNull(),
+  hpp: integer("hpp").default(0).notNull(),
   stock: integer("stock").default(0).notNull(),
   sku: varchar("sku", { length: 255 }).unique(),
   sizeInGram: integer("sizeInGram"),

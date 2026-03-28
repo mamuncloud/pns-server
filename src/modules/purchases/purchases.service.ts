@@ -75,7 +75,10 @@ export class PurchasesService {
             if (existingVariant) {
               await tx
                 .update(schema.productVariants)
-                .set({ stock: existingVariant.stock + item.qty })
+                .set({ 
+                  stock: existingVariant.stock + item.qty,
+                  hpp: Math.round(unitCost)
+                })
                 .where(eq(schema.productVariants.id, existingVariant.id));
             } else {
               // Auto-create variant if it doesn't exist
@@ -83,6 +86,7 @@ export class PurchasesService {
                 productId: item.productId,
                 label: item.variantLabel,
                 price: item.sellingPrice,
+                hpp: Math.round(unitCost),
                 stock: item.qty,
                 expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
               });
@@ -245,13 +249,17 @@ export class PurchasesService {
               if (existingVariant) {
                 await tx
                   .update(schema.productVariants)
-                  .set({ stock: existingVariant.stock + item.qty })
+                  .set({ 
+                    stock: existingVariant.stock + item.qty,
+                    hpp: Math.round(unitCost)
+                  })
                   .where(eq(schema.productVariants.id, existingVariant.id));
               } else {
                 await tx.insert(schema.productVariants).values({
                   productId: item.productId,
                   label: item.variantLabel,
                   price: item.sellingPrice,
+                  hpp: Math.round(unitCost),
                   stock: item.qty,
                   expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
                 });
@@ -286,6 +294,7 @@ export class PurchasesService {
             // Update stock on the matching product variant
 
             // Update stock on the matching product variant
+            // Update stock on the matching product variant
             if (item.variantLabel) {
               const existingVariant = product.variants.find(
                 (v: any) => v.label === item.variantLabel,
@@ -294,13 +303,17 @@ export class PurchasesService {
               if (existingVariant) {
                 await tx
                   .update(schema.productVariants)
-                  .set({ stock: existingVariant.stock + item.qty })
+                  .set({ 
+                    stock: existingVariant.stock + item.qty,
+                    hpp: Math.round(unitCost)
+                  })
                   .where(eq(schema.productVariants.id, existingVariant.id));
               } else {
                 await tx.insert(schema.productVariants).values({
                   productId: item.productId,
                   label: item.variantLabel,
                   price: item.sellingPrice,
+                  hpp: Math.round(unitCost),
                   stock: item.qty,
                   expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
                 });
