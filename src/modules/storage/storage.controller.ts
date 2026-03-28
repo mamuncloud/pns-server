@@ -4,18 +4,24 @@ import {
   UseInterceptors, 
   UploadedFiles, 
   UploadedFile,
-  BadRequestException
+  BadRequestException,
+  UseGuards
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { StorageService } from './storage.service';
 
 @ApiTags('Storage')
 @Controller('storage')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 
   @Post('upload')
+  @Roles('MANAGER')
   @ApiOperation({ summary: 'Upload multiple files' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -49,6 +55,7 @@ export class StorageController {
   }
 
   @Post('upload-single')
+  @Roles('MANAGER')
   @ApiOperation({ summary: 'Upload single file' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', {
