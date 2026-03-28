@@ -10,7 +10,7 @@ A high-performance backend server built with Bun, Elysia, and Drizzle ORM.
 - **Logging:** Pino
 
 ## Core Modules
-- **Auth:** Magic link authentication with JWT.
+- **Auth:** Magic link authentication with JWT & Silent Activity-Based Token Reissue.
 - **Products:** Product catalog and variant management.
 - **Purchases:** Supply chain management, restock flow with automatic HPP calculation, and safe deletion of draft records.
 - **Suppliers:** Supplier database management.
