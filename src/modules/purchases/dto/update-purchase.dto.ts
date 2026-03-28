@@ -44,6 +44,12 @@ class PurchaseItemDto {
   @Min(0)
   sellingPrice: number;
 
+  @ApiProperty({ example: 250, description: 'Size of this variant in grams' })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  sizeInGram?: number;
+
   @ApiProperty({ example: '2027-12-31' })
   @IsDateString()
   @IsOptional()

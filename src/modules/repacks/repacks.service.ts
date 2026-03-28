@@ -92,14 +92,18 @@ export class RepacksService {
               price: item.sellingPrice,
               hpp: unitHpp,
               stock: 0, // Will be updated by StockService
+              sizeInGram: item.sizeInGram,
             })
             .returning();
           targetVariant = newVariant;
         } else {
-          // Update HPP to latest repack cost
+          // Update HPP and sizeInGram to latest repack details
           await tx
             .update(schema.productVariants)
-            .set({ hpp: unitHpp })
+            .set({ 
+              hpp: unitHpp,
+              sizeInGram: item.sizeInGram,
+            })
             .where(eq(schema.productVariants.id, targetVariant.id));
         }
 
@@ -109,6 +113,7 @@ export class RepacksService {
           targetVariantId: targetVariant.id,
           qtyProduced: item.qtyProduced,
           sellingPrice: item.sellingPrice,
+          sizeInGram: item.sizeInGram,
         });
 
         // Increment stock of target variant via ledger

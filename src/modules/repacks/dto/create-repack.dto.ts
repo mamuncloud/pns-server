@@ -13,6 +13,10 @@ class CreateRepackItemDto {
   @IsInt()
   @IsNotEmpty()
   sellingPrice: number;
+
+  @IsInt()
+  @IsOptional()
+  sizeInGram?: number;
 }
 
 export class CreateRepackDto {

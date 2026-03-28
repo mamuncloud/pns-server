@@ -47,6 +47,7 @@ export class PurchasesService {
             productId: item.productId,
             variantLabel: item.variantLabel,
             qty: item.qty,
+            sizeInGram: item.sizeInGram,
             totalCost: item.totalCost,
             extraCosts: item.extraCosts,
             unitCost: Math.round(unitCost),
@@ -57,54 +58,10 @@ export class PurchasesService {
 
         // Skip stock and HPP updates if it's a DRAFT
         if (dto.status === 'COMPLETED') {
-          const product = await tx.query.products.findFirst({
-            where: eq(schema.products.id, item.productId),
-            with: { variants: true },
+          await this.syncProductVariantFromPurchaseItem(tx, purchase.id, {
+            ...item,
+            unitCost,
           });
-
-          if (!product) {
-            throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
-          }
-
-          if (item.variantLabel) {
-            const existingVariant = product.variants.find(
-              (v: any) => v.label === item.variantLabel,
-            );
-
-            if (existingVariant) {
-              // Update HPP only (stock is managed by StockService)
-              await tx
-                .update(schema.productVariants)
-                .set({ hpp: Math.round(unitCost) })
-                .where(eq(schema.productVariants.id, existingVariant.id));
-
-              await this.stockService.recordMovement(tx, {
-                productVariantId: existingVariant.id,
-                type: 'PURCHASE',
-                quantity: item.qty,
-                referenceId: purchase.id,
-                note: `Pembelian dari supplier`,
-              });
-            } else {
-              // Auto-create variant if it doesn't exist
-              const [newVariant] = await tx.insert(schema.productVariants).values({
-                productId: item.productId,
-                label: item.variantLabel,
-                price: item.sellingPrice,
-                hpp: Math.round(unitCost),
-                stock: 0, // StockService will handle the increment
-                expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
-              }).returning();
-
-              await this.stockService.recordMovement(tx, {
-                productVariantId: newVariant.id,
-                type: 'PURCHASE',
-                quantity: item.qty,
-                referenceId: purchase.id,
-                note: `Pembelian dari supplier (varian baru)`,
-              });
-            }
-          }
         }
       }
 
@@ -233,6 +190,7 @@ export class PurchasesService {
               productId: item.productId,
               variantLabel: item.variantLabel,
               qty: item.qty,
+              sizeInGram: item.sizeInGram,
               totalCost: item.totalCost,
               extraCosts: item.extraCosts,
               unitCost: Math.round(unitCost),
@@ -242,52 +200,10 @@ export class PurchasesService {
             .returning();
 
           if (willBeCompleted) {
-            const product = await tx.query.products.findFirst({
-              where: eq(schema.products.id, item.productId),
-              with: { variants: true },
+            await this.syncProductVariantFromPurchaseItem(tx, id, {
+              ...item,
+              unitCost,
             });
-
-            if (!product) {
-              throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
-            }
-
-            if (item.variantLabel) {
-              const existingVariant = product.variants.find(
-                (v: any) => v.label === item.variantLabel,
-              );
-
-              if (existingVariant) {
-                await tx
-                  .update(schema.productVariants)
-                  .set({ hpp: Math.round(unitCost) })
-                  .where(eq(schema.productVariants.id, existingVariant.id));
-
-                await this.stockService.recordMovement(tx, {
-                  productVariantId: existingVariant.id,
-                  type: 'PURCHASE',
-                  quantity: item.qty,
-                  referenceId: id,
-                  note: `Pembelian diperbarui`,
-                });
-              } else {
-                const [newVariant] = await tx.insert(schema.productVariants).values({
-                  productId: item.productId,
-                  label: item.variantLabel,
-                  price: item.sellingPrice,
-                  hpp: Math.round(unitCost),
-                  stock: 0,
-                  expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
-                }).returning();
-
-                await this.stockService.recordMovement(tx, {
-                  productVariantId: newVariant.id,
-                  type: 'PURCHASE',
-                  quantity: item.qty,
-                  referenceId: id,
-                  note: `Pembelian diperbarui (varian baru)`,
-                });
-              }
-            }
           }
         }
       } else {
@@ -303,53 +219,7 @@ export class PurchasesService {
 
         if (!wasCompleted && willBeCompleted && existingPurchase.items.length > 0) {
           for (const item of existingPurchase.items) {
-            const unitCost = item.unitCost;
-            const product = await tx.query.products.findFirst({
-              where: eq(schema.products.id, item.productId),
-              with: { variants: true },
-            });
-
-            if (!product) {
-              throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
-            }
-
-            if (item.variantLabel) {
-              const existingVariant = product.variants.find(
-                (v: any) => v.label === item.variantLabel,
-              );
-
-              if (existingVariant) {
-                await tx
-                  .update(schema.productVariants)
-                  .set({ hpp: Math.round(unitCost) })
-                  .where(eq(schema.productVariants.id, existingVariant.id));
-
-                await this.stockService.recordMovement(tx, {
-                  productVariantId: existingVariant.id,
-                  type: 'PURCHASE',
-                  quantity: item.qty,
-                  referenceId: id,
-                  note: `Pembelian diselesaikan`,
-                });
-              } else {
-                const [newVariant] = await tx.insert(schema.productVariants).values({
-                  productId: item.productId,
-                  label: item.variantLabel,
-                  price: item.sellingPrice,
-                  hpp: Math.round(unitCost),
-                  stock: 0,
-                  expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
-                }).returning();
-
-                await this.stockService.recordMovement(tx, {
-                  productVariantId: newVariant.id,
-                  type: 'PURCHASE',
-                  quantity: item.qty,
-                  referenceId: id,
-                  note: `Pembelian diselesaikan (varian baru)`,
-                });
-              }
-            }
+            await this.syncProductVariantFromPurchaseItem(tx, id, item);
           }
         }
       }
@@ -382,5 +252,71 @@ export class PurchasesService {
         message: 'Berhasil menghapus transaksi pembelian',
       };
     });
+  }
+
+  private async syncProductVariantFromPurchaseItem(
+    tx: any,
+    purchaseId: string,
+    item: any,
+  ) {
+    const product = await tx.query.products.findFirst({
+      where: eq(schema.products.id, item.productId),
+      with: { variants: true },
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
+    }
+
+    if (item.variantLabel) {
+      const existingVariant = product.variants.find(
+        (v: any) => v.label === item.variantLabel,
+      );
+
+      const unitCost = item.unitCost || (item.totalCost + item.extraCosts) / item.qty;
+
+      if (existingVariant) {
+        // Update HPP, sizeInGram, price, and expiredDate
+        await tx
+          .update(schema.productVariants)
+          .set({
+            hpp: Math.round(unitCost),
+            sizeInGram: item.sizeInGram || existingVariant.sizeInGram,
+            price: item.sellingPrice || existingVariant.price,
+            expiredDate: item.expiredDate ? new Date(item.expiredDate) : existingVariant.expiredDate,
+          })
+          .where(eq(schema.productVariants.id, existingVariant.id));
+
+        await this.stockService.recordMovement(tx, {
+          productVariantId: existingVariant.id,
+          type: 'PURCHASE',
+          quantity: item.qty,
+          referenceId: purchaseId,
+          note: `Pembelian disinkronkan`,
+        });
+      } else {
+        // Auto-create variant if it doesn't exist
+        const [newVariant] = await tx
+          .insert(schema.productVariants)
+          .values({
+            productId: item.productId,
+            label: item.variantLabel,
+            price: item.sellingPrice,
+            hpp: Math.round(unitCost),
+            sizeInGram: item.sizeInGram,
+            stock: 0,
+            expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
+          })
+          .returning();
+
+        await this.stockService.recordMovement(tx, {
+          productVariantId: newVariant.id,
+          type: 'PURCHASE',
+          quantity: item.qty,
+          referenceId: purchaseId,
+          note: `Pembelian disinkronkan (varian baru)`,
+        });
+      }
+    }
   }
 }

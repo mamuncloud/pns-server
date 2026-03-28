@@ -238,6 +238,7 @@ export const purchaseItems = pgTable("purchase_items", {
   extraCosts: integer("extraCosts").default(0).notNull(),
   unitCost: integer("unitCost").notNull(),
   sellingPrice: integer("sellingPrice").notNull(),
+  sizeInGram: integer("sizeInGram"),
   expiredDate: timestamp("expiredDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -292,6 +293,7 @@ export const repackItems = pgTable("repack_items", {
     .notNull(),
   qtyProduced: integer("qtyProduced").notNull(),
   sellingPrice: integer("sellingPrice").notNull(),
+  sizeInGram: integer("sizeInGram"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
