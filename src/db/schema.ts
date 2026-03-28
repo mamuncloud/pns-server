@@ -29,6 +29,16 @@ export const productVariantLabelEnum = pgEnum("ProductVariantLabel", [
 
 export const purchaseStatusEnum = pgEnum("PurchaseStatus", ["DRAFT", "COMPLETED"]);
 
+export const stockMovementTypeEnum = pgEnum("StockMovementType", [
+  "PURCHASE",
+  "PURCHASE_REVERSAL",
+  "SALE",
+  "REPACK_SOURCE",
+  "REPACK_TARGET",
+  "ADJUSTMENT",
+  "RETURN",
+]);
+
 // Tables
 export const users = pgTable("users", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -242,6 +252,19 @@ export const storeSettings = pgTable("store_settings", {
     .$onUpdate(() => new Date()),
 });
 
+export const stockMovements = pgTable("stock_movements", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  productVariantId: varchar("productVariantId", { length: 255 })
+    .references(() => productVariants.id, { onDelete: "cascade" })
+    .notNull(),
+  type: stockMovementTypeEnum("type").notNull(),
+  quantity: integer("quantity").notNull(),
+  balanceAfter: integer("balanceAfter").notNull(),
+  referenceId: varchar("referenceId", { length: 255 }),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const repacks = pgTable("repacks", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   productId: varchar("productId", { length: 255 })
@@ -332,6 +355,7 @@ export const productVariantsRelations = relations(productVariants, ({ one, many 
   orderItems: many(orderItems),
   repacksAsSource: many(repacks),
   repacksAsTarget: many(repackItems),
+  stockMovements: many(stockMovements),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
@@ -406,6 +430,13 @@ export const repackItemsRelations = relations(repackItems, ({ one }) => ({
   }),
   targetVariant: one(productVariants, {
     fields: [repackItems.targetVariantId],
+    references: [productVariants.id],
+  }),
+}));
+
+export const stockMovementsRelations = relations(stockMovements, ({ one }) => ({
+  productVariant: one(productVariants, {
+    fields: [stockMovements.productVariantId],
     references: [productVariants.id],
   }),
 }));

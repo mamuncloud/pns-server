@@ -5,12 +5,14 @@ import * as schema from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
+import { StockService } from '../stock/stock.service';
 
 @Injectable()
 export class PurchasesService {
   constructor(
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
+    private readonly stockService: StockService,
   ) {}
 
 
@@ -64,29 +66,42 @@ export class PurchasesService {
             throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
           }
 
-          // Update stock on the matching product variant
           if (item.variantLabel) {
             const existingVariant = product.variants.find(
               (v: any) => v.label === item.variantLabel,
             );
 
             if (existingVariant) {
+              // Update HPP only (stock is managed by StockService)
               await tx
                 .update(schema.productVariants)
-                .set({ 
-                  stock: existingVariant.stock + item.qty,
-                  hpp: Math.round(unitCost)
-                })
+                .set({ hpp: Math.round(unitCost) })
                 .where(eq(schema.productVariants.id, existingVariant.id));
+
+              await this.stockService.recordMovement(tx, {
+                productVariantId: existingVariant.id,
+                type: 'PURCHASE',
+                quantity: item.qty,
+                referenceId: purchase.id,
+                note: `Pembelian dari supplier`,
+              });
             } else {
               // Auto-create variant if it doesn't exist
-              await tx.insert(schema.productVariants).values({
+              const [newVariant] = await tx.insert(schema.productVariants).values({
                 productId: item.productId,
                 label: item.variantLabel,
                 price: item.sellingPrice,
                 hpp: Math.round(unitCost),
-                stock: item.qty,
+                stock: 0, // StockService will handle the increment
                 expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
+              }).returning();
+
+              await this.stockService.recordMovement(tx, {
+                productVariantId: newVariant.id,
+                type: 'PURCHASE',
+                quantity: item.qty,
+                referenceId: purchase.id,
+                note: `Pembelian dari supplier (varian baru)`,
               });
             }
           }
@@ -164,6 +179,7 @@ export class PurchasesService {
       const willBeCompleted = newStatus === 'COMPLETED';
       const isChangingToDraft = wasCompleted && newStatus === 'DRAFT';
 
+      // Revert stock if switching back to DRAFT
       if (isChangingToDraft) {
         for (const item of existingPurchase.items) {
           const product = await tx.query.products.findFirst({
@@ -171,18 +187,18 @@ export class PurchasesService {
             with: { variants: true },
           });
 
-          if (product) {
-            // Decrement stock on the matching product variant
-            if (item.variantLabel) {
-              const matchingVariant = product.variants.find(
-                (v: any) => v.label === item.variantLabel,
-              );
-              if (matchingVariant) {
-                await tx
-                  .update(schema.productVariants)
-                  .set({ stock: Math.max(0, matchingVariant.stock - item.qty) })
-                  .where(eq(schema.productVariants.id, matchingVariant.id));
-              }
+          if (product && item.variantLabel) {
+            const matchingVariant = product.variants.find(
+              (v: any) => v.label === item.variantLabel,
+            );
+            if (matchingVariant) {
+              await this.stockService.recordMovement(tx, {
+                productVariantId: matchingVariant.id,
+                type: 'PURCHASE_REVERSAL',
+                quantity: -item.qty,
+                referenceId: id,
+                note: `Pembalikan pembelian ke DRAFT`,
+              });
             }
           }
         }
@@ -235,9 +251,6 @@ export class PurchasesService {
               throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
             }
 
-            // Update stock on the matching product variant
-
-            // Update stock on the matching product variant
             if (item.variantLabel) {
               const existingVariant = product.variants.find(
                 (v: any) => v.label === item.variantLabel,
@@ -246,19 +259,32 @@ export class PurchasesService {
               if (existingVariant) {
                 await tx
                   .update(schema.productVariants)
-                  .set({ 
-                    stock: existingVariant.stock + item.qty,
-                    hpp: Math.round(unitCost)
-                  })
+                  .set({ hpp: Math.round(unitCost) })
                   .where(eq(schema.productVariants.id, existingVariant.id));
+
+                await this.stockService.recordMovement(tx, {
+                  productVariantId: existingVariant.id,
+                  type: 'PURCHASE',
+                  quantity: item.qty,
+                  referenceId: id,
+                  note: `Pembelian diperbarui`,
+                });
               } else {
-                await tx.insert(schema.productVariants).values({
+                const [newVariant] = await tx.insert(schema.productVariants).values({
                   productId: item.productId,
                   label: item.variantLabel,
                   price: item.sellingPrice,
                   hpp: Math.round(unitCost),
-                  stock: item.qty,
+                  stock: 0,
                   expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
+                }).returning();
+
+                await this.stockService.recordMovement(tx, {
+                  productVariantId: newVariant.id,
+                  type: 'PURCHASE',
+                  quantity: item.qty,
+                  referenceId: id,
+                  note: `Pembelian diperbarui (varian baru)`,
                 });
               }
             }
@@ -287,10 +313,6 @@ export class PurchasesService {
               throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
             }
 
-            // Update stock on the matching product variant
-
-            // Update stock on the matching product variant
-            // Update stock on the matching product variant
             if (item.variantLabel) {
               const existingVariant = product.variants.find(
                 (v: any) => v.label === item.variantLabel,
@@ -299,19 +321,32 @@ export class PurchasesService {
               if (existingVariant) {
                 await tx
                   .update(schema.productVariants)
-                  .set({ 
-                    stock: existingVariant.stock + item.qty,
-                    hpp: Math.round(unitCost)
-                  })
+                  .set({ hpp: Math.round(unitCost) })
                   .where(eq(schema.productVariants.id, existingVariant.id));
+
+                await this.stockService.recordMovement(tx, {
+                  productVariantId: existingVariant.id,
+                  type: 'PURCHASE',
+                  quantity: item.qty,
+                  referenceId: id,
+                  note: `Pembelian diselesaikan`,
+                });
               } else {
-                await tx.insert(schema.productVariants).values({
+                const [newVariant] = await tx.insert(schema.productVariants).values({
                   productId: item.productId,
                   label: item.variantLabel,
                   price: item.sellingPrice,
                   hpp: Math.round(unitCost),
-                  stock: item.qty,
+                  stock: 0,
                   expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
+                }).returning();
+
+                await this.stockService.recordMovement(tx, {
+                  productVariantId: newVariant.id,
+                  type: 'PURCHASE',
+                  quantity: item.qty,
+                  referenceId: id,
+                  note: `Pembelian diselesaikan (varian baru)`,
                 });
               }
             }

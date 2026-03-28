@@ -12,6 +12,7 @@ import { StorageModule } from 'src/modules/storage/storage.module';
 import { SuppliersModule } from 'src/modules/suppliers/suppliers.module';
 import { StoreSettingsModule } from 'src/modules/store-settings/store-settings.module';
 import { RepacksModule } from 'src/modules/repacks/repacks.module';
+import { StockModule } from 'src/modules/stock/stock.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { RepacksModule } from 'src/modules/repacks/repacks.module';
     HomeModule,
     ProductsModule,
     AuthModule,
+    StockModule,
     PurchasesModule,
     OrdersModule,
     StorageModule,

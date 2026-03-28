@@ -4,12 +4,14 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { CreateRepackDto } from './dto/create-repack.dto';
+import { StockService } from '../stock/stock.service';
 
 @Injectable()
 export class RepacksService {
   constructor(
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
+    private readonly stockService: StockService,
   ) {}
 
   async findAll(productId?: string) {
@@ -56,13 +58,14 @@ export class RepacksService {
         })
         .returning();
 
-      // 3. Deduct stock from source variant
-      await tx
-        .update(schema.productVariants)
-        .set({
-          stock: sourceVariant.stock - dto.sourceQtyUsed,
-        })
-        .where(eq(schema.productVariants.id, dto.sourceVariantId));
+      // 3. Deduct stock from source variant via ledger
+      await this.stockService.recordMovement(tx, {
+        productVariantId: dto.sourceVariantId,
+        type: 'REPACK_SOURCE',
+        quantity: -dto.sourceQtyUsed,
+        referenceId: repack.id,
+        note: `Bahan baku repack`,
+      });
 
       // 4. Calculate unit HPP for target variants based on source cost
       const totalUnitsProduced = dto.items.reduce((acc, item) => acc + item.qtyProduced, 0);
@@ -88,10 +91,16 @@ export class RepacksService {
               label: item.targetVariantLabel as any,
               price: item.sellingPrice,
               hpp: unitHpp,
-              stock: 0, // Will be updated below
+              stock: 0, // Will be updated by StockService
             })
             .returning();
           targetVariant = newVariant;
+        } else {
+          // Update HPP to latest repack cost
+          await tx
+            .update(schema.productVariants)
+            .set({ hpp: unitHpp })
+            .where(eq(schema.productVariants.id, targetVariant.id));
         }
 
         // Create repack item record
@@ -102,17 +111,17 @@ export class RepacksService {
           sellingPrice: item.sellingPrice,
         });
 
-        // Increment stock of target variant
-        await tx
-          .update(schema.productVariants)
-          .set({
-            stock: targetVariant.stock + item.qtyProduced,
-            hpp: unitHpp, // Update HPP to latest repack cost
-          })
-          .where(eq(schema.productVariants.id, targetVariant.id));
+        // Increment stock of target variant via ledger
+        await this.stockService.recordMovement(tx, {
+          productVariantId: targetVariant.id,
+          type: 'REPACK_TARGET',
+          quantity: item.qtyProduced,
+          referenceId: repack.id,
+          note: `Hasil repack`,
+        });
       }
 
-      // 5. Return the full repack record with relations
+      // 6. Return the full repack record with relations
       return tx.query.repacks.findFirst({
         where: eq(schema.repacks.id, repack.id),
         with: {

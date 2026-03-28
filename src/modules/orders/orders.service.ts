@@ -2,14 +2,16 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { StockService } from '../stock/stock.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
+    private readonly stockService: StockService,
   ) {}
 
   async create(dto: CreateOrderDto) {
@@ -25,9 +27,8 @@ export class OrdersService {
         status: 'PENDING',
       }).returning();
 
-      // 3. Create order items and update stock
+      // 3. Create order items and record stock movements
       for (const item of dto.items) {
-        // Find variant to get product ID
         const variant = await tx.query.productVariants.findFirst({
           where: eq(schema.productVariants.id, item.productVariantId),
         });
@@ -45,12 +46,14 @@ export class OrdersService {
           price: item.price,
         });
 
-        // Update variant stock
-        await tx.update(schema.productVariants)
-          .set({
-            stock: sql`${schema.productVariants.stock} - ${item.quantity}`,
-          })
-          .where(eq(schema.productVariants.id, item.productVariantId));
+        // Deduct stock via ledger
+        await this.stockService.recordMovement(tx, {
+          productVariantId: item.productVariantId,
+          type: 'SALE',
+          quantity: -item.quantity,
+          referenceId: order.id,
+          note: `Penjualan`,
+        });
       }
 
       return {
