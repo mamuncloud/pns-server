@@ -8,10 +8,10 @@ class PurchaseItemDto {
   @IsUUID()
   productId: string;
 
-  @ApiProperty({ enum: ProductVariantLabel, example: ProductVariantLabel['250GR'] })
+  @ApiProperty({ enum: ProductVariantLabel, example: ProductVariantLabel.Medium })
   @IsEnum(ProductVariantLabel)
   @IsOptional()
-  variantLabel?: ProductVariantLabel;
+  package?: ProductVariantLabel;
 
   @ApiProperty({ example: 10 })
   @IsInt()

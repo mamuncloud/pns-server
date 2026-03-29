@@ -20,7 +20,7 @@ async function seed() {
     await db.delete(schema.products);
 
     const tastes = ['Pedas', 'Gurih', 'Manis'];
-    const labels = ['ES3', 'ES4', '250gr', '500gr', '1kg', 'bal'];
+    const labels = ['Medium', 'Small', '250gr', '500gr', '1kg', 'bal'];
     const snackNames = [
       'Keripik Kaca', 'Makaroni Ngocor', 'Basreng Gila', 'Usus Pedas', 'Cireng Krispi',
       'Lidi-lidian', 'Batagor Kuah', 'Pilus Gurih', 'Kacang Atom', 'Emping Manis',
@@ -67,7 +67,7 @@ async function seed() {
         variantsToInsert.push({
           id: crypto.randomUUID(),
           productId: product.id,
-          label,
+          package: label,
           price: (Math.floor(Math.random() * 10) + 2) * 5000, // 10000 to 60000
           stock: Math.floor(Math.random() * 100) + 10,
           sku: `SKU-${product.name.replace(/\s+/g, '-').toUpperCase()}-${label.toUpperCase()}-${Math.floor(Math.random() * 1000)}`,

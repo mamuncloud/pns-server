@@ -45,7 +45,7 @@ export class PurchasesService {
           .values({
             purchaseId: purchase.id,
             productId: item.productId,
-            variantLabel: item.variantLabel,
+            package: item.package,
             qty: item.qty,
             sizeInGram: item.sizeInGram,
             totalCost: item.totalCost,
@@ -144,9 +144,9 @@ export class PurchasesService {
             with: { variants: true },
           });
 
-          if (product && item.variantLabel) {
+          if (product && item.package) {
             const matchingVariant = product.variants.find(
-              (v: any) => v.label === item.variantLabel,
+              (v: any) => v.package === item.package,
             );
             if (matchingVariant) {
               await this.stockService.recordMovement(tx, {
@@ -188,7 +188,7 @@ export class PurchasesService {
             .values({
               purchaseId: id,
               productId: item.productId,
-              variantLabel: item.variantLabel,
+              package: item.package,
               qty: item.qty,
               sizeInGram: item.sizeInGram,
               totalCost: item.totalCost,
@@ -268,9 +268,9 @@ export class PurchasesService {
       throw new NotFoundException(`Produk dengan ID ${item.productId} tidak ditemukan`);
     }
 
-    if (item.variantLabel) {
+    if (item.package) {
       const existingVariant = product.variants.find(
-        (v: any) => v.label === item.variantLabel,
+        (v: any) => v.package === item.package,
       );
 
       const unitCost = item.unitCost || (item.totalCost + item.extraCosts) / item.qty;
@@ -300,7 +300,7 @@ export class PurchasesService {
           .insert(schema.productVariants)
           .values({
             productId: item.productId,
-            label: item.variantLabel,
+            package: item.package,
             price: item.sellingPrice,
             hpp: Math.round(unitCost),
             sizeInGram: item.sizeInGram,

@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 class CreateRepackItemDto {
   @IsString()
   @IsNotEmpty()
-  targetVariantLabel: string; // e.g. "250gr", "500gr"
+  targetVariantPackage: string; // e.g. "250gr", "500gr"
 
   @IsInt()
   @IsNotEmpty()

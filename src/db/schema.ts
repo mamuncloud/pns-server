@@ -19,8 +19,8 @@ export const pricingTypeEnum = pgEnum("PricingType", ["WEIGHT", "FIXED_PRICE", "
 export const productTasteEnum = pgEnum("ProductTaste", ["GURIH", "PEDAS", "MANIS"]);
 
 export const productVariantLabelEnum = pgEnum("ProductVariantLabel", [
-  "ES3",
-  "ES4",
+  "Medium",
+  "Small",
   "250gr",
   "500gr",
   "1kg",
@@ -119,7 +119,7 @@ export const productVariants = pgTable("product_variants", {
   productId: varchar("productId", { length: 255 })
     .references(() => products.id, { onDelete: "cascade" })
     .notNull(),
-  label: productVariantLabelEnum("label").notNull(),
+  package: productVariantLabelEnum("package").notNull(),
   price: integer("price").notNull(),
   hpp: integer("hpp").default(0).notNull(),
   stock: integer("stock").default(0).notNull(),
@@ -243,7 +243,7 @@ export const purchaseItems = pgTable("purchase_items", {
   productId: varchar("productId", { length: 255 })
     .references(() => products.id)
     .notNull(),
-  variantLabel: productVariantLabelEnum("variantLabel"),
+  package: productVariantLabelEnum("package"),
   qty: integer("qty").notNull(),
   totalCost: integer("totalCost").notNull(),
   extraCosts: integer("extraCosts").default(0).notNull(),

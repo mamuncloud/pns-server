@@ -15,8 +15,8 @@ import {
 } from 'class-validator';
 
 export enum ProductVariantLabel {
-  ES3 = 'ES3',
-  ES4 = 'ES4',
+  Medium = 'Medium',
+  Small = 'Small',
   '250GR' = '250gr',
   '500GR' = '500gr',
   '1KG' = '1kg',
@@ -27,7 +27,7 @@ export class CreateVariantDto {
   @ApiProperty({ enum: ProductVariantLabel, example: ProductVariantLabel['250GR'] })
   @IsEnum(ProductVariantLabel)
   @IsNotEmpty()
-  label: ProductVariantLabel;
+  package: ProductVariantLabel;
 
   @ApiProperty({ example: 25000 })
   @IsInt()

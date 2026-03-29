@@ -78,7 +78,7 @@ export class RepacksService {
         let targetVariant = await tx.query.productVariants.findFirst({
           where: and(
             eq(schema.productVariants.productId, dto.productId),
-            eq(schema.productVariants.label, item.targetVariantLabel as any),
+            eq(schema.productVariants.package, item.targetVariantPackage as any),
           ),
         });
 
@@ -88,7 +88,7 @@ export class RepacksService {
             .insert(schema.productVariants)
             .values({
               productId: dto.productId,
-              label: item.targetVariantLabel as any,
+              package: item.targetVariantPackage as any,
               price: item.sellingPrice,
               hpp: unitHpp,
               stock: 0, // Will be updated by StockService
