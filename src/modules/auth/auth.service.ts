@@ -100,10 +100,97 @@ export class AuthService {
       throw new UnauthorizedException('Account no longer exists.');
     }
 
-    // 3. Delete token after use
+    // 3. Delete auth token after use
     await this.db.delete(schema.authTokens).where(eq(schema.authTokens.id, storedToken.id));
 
-    // 4. Generate JWT
+    // 4. Generate JWT payload
+    const payload = {
+      sub: entity.id,
+      email: entity.email,
+      role: entity.role,
+      name: entity.name,
+      type: entity.type,
+    };
+
+    // 5. Generate Access Token (Short-lived)
+    const accessToken = this.jwtService.sign(payload);
+
+    // 6. Generate Refresh Token (Long-lived, stored in DB)
+    const refreshToken = crypto.randomBytes(40).toString('hex');
+    const refreshTokenExpiresAt = new Date();
+    refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 7); // 7 days
+
+    await this.db.insert(schema.refreshTokens).values({
+      employeeId: entity.type === 'EMPLOYEE' ? entity.id : null,
+      userId: entity.type === 'USER' ? entity.id : null,
+      token: refreshToken,
+      expiresAt: refreshTokenExpiresAt,
+    });
+
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      user: entity,
+    };
+  }
+
+  async refresh(token: string) {
+    // 1. Find and validate refresh token
+    const storedToken = await this.db.query.refreshTokens.findFirst({
+      where: and(
+        eq(schema.refreshTokens.token, token),
+        gt(schema.refreshTokens.expiresAt, new Date()),
+      ),
+      with: {
+        employee: true,
+        user: true,
+      }
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException('Invalid or expired refresh token.');
+    }
+
+    // 2. Determine entity
+    let entity: { id: string; email: string | null; name: string | null; role: string; type: 'EMPLOYEE' | 'USER' } | null = null;
+
+    if (storedToken.employee) {
+      entity = {
+        id: storedToken.employee.id,
+        email: storedToken.employee.email,
+        name: storedToken.employee.name,
+        role: storedToken.employee.role,
+        type: 'EMPLOYEE',
+      };
+    } else if (storedToken.user) {
+      entity = {
+        id: storedToken.user.id,
+        email: storedToken.user.email,
+        name: storedToken.user.name,
+        role: 'CUSTOMER',
+        type: 'USER',
+      };
+    }
+
+    if (!entity) {
+      throw new UnauthorizedException('Account no longer exists.');
+    }
+
+    // 3. Optional: Refresh token rotation (generate new refresh token)
+    const newRefreshToken = crypto.randomBytes(40).toString('hex');
+    const newExpiresAt = new Date();
+    newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+
+    // Update the existing refresh token with a new value and expiry
+    await this.db.update(schema.refreshTokens)
+      .set({ 
+        token: newRefreshToken, 
+        expiresAt: newExpiresAt,
+        createdAt: new Date() 
+      })
+      .where(eq(schema.refreshTokens.id, storedToken.id));
+
+    // 4. Generate new Access Token
     const payload = {
       sub: entity.id,
       email: entity.email,
@@ -114,18 +201,14 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(payload),
-      user: entity,
+      refresh_token: newRefreshToken,
     };
   }
 
-  reissueToken(user: { id: string; email: string; role: string; name: string; type: string }) {
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      name: user.name,
-      type: user.type,
-    };
-    return { access_token: this.jwtService.sign(payload) };
+  async logout(token: string) {
+    if (token) {
+      await this.db.delete(schema.refreshTokens).where(eq(schema.refreshTokens.token, token));
+    }
+    return { success: true };
   }
 }

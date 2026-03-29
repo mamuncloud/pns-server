@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import cookieParser from 'cookie-parser';
 import * as express from 'express';
 import { join } from 'path';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -16,6 +17,8 @@ import { HttpAdapterHost } from '@nestjs/core';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+  
+  app.use(cookieParser());
   
   // Increase payload limits
   app.use(express.json({ limit: '2mb' }));

@@ -76,6 +76,17 @@ export const authTokens = pgTable("auth_tokens", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const refreshTokens = pgTable("refresh_tokens", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  employeeId: varchar("employeeId", { length: 255 })
+    .references(() => employees.id, { onDelete: "cascade" }),
+  userId: varchar("userId", { length: 255 })
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: varchar("token", { length: 255 }).unique().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const brands = pgTable("brands", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: varchar("name", { length: 255 }).notNull(),
@@ -305,6 +316,18 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const employeesRelations = relations(employees, ({ many }) => ({
   authTokens: many(authTokens),
+  refreshTokens: many(refreshTokens),
+}));
+
+export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
+  employee: one(employees, {
+    fields: [refreshTokens.employeeId],
+    references: [employees.id],
+  }),
+  user: one(users, {
+    fields: [refreshTokens.userId],
+    references: [users.id],
+  }),
 }));
 
 export const authTokensRelations = relations(authTokens, ({ one }) => ({
