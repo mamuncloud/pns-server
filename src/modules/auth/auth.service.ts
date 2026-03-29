@@ -50,7 +50,7 @@ export class AuthService {
 
     // 5. Send real email
     const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const magicLink = `${frontendUrl}/login/verify?token=${token}`;
+    const magicLink = `${frontendUrl}/staff/verify?token=${token}`;
     
     const userName = employee?.name || user?.name || 'User';
     await this.mailsService.sendMagicLink(email, magicLink, userName);
