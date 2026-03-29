@@ -5,8 +5,8 @@ class ProductVariantDto {
   @ApiProperty({ example: 'uuid-123', description: 'Unique identifier for the product variant' })
   id: string;
 
-  @ApiProperty({ example: 'Original', description: 'Label for the variant' })
-  label: string;
+  @ApiProperty({ example: 'Medium', description: 'Package size for the variant' })
+  package: string;
 
   @ApiProperty({ example: 15000, description: 'Price of the variant in IDR' })
   price: number;

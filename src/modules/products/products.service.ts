@@ -180,7 +180,7 @@ export class ProductsService {
         await tx.insert(schema.productVariants).values(
           dto.variants.map((v) => ({
             productId: product.id,
-            label: v.label,
+            package: v.package,
             price: v.price,
             stock: v.initialStock ?? 0,
             sku: v.sku,
