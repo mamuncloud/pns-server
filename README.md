@@ -1,26 +1,34 @@
 # PNS Server
 
-A high-performance backend server built with Bun, Elysia, and Drizzle ORM.
+A high-performance backend server built with Bun, NestJS, and Drizzle ORM.
 
 ## Tech Stack
-- **Runtime:** Bun
-- **Framework:** [ElysiaJS](https://elysiajs.com/)
+- **Runtime:** [Bun](https://bun.sh/)
+- **Framework:** [NestJS 11+](https://nestjs.com/)
 - **ORM:** [Drizzle ORM](https://orm.drizzle.team/)
-- **Database:** PostgreSQL (with `node-postgres`)
+- **Database:** PostgreSQL
+- **Documentation:** [Scalar UI](https://scalar.com/) (available at `/docs`)
 - **Logging:** Pino
 
 ## Core Modules
-- **Auth:** Best-practice "Access + Refresh Token" system with httpOnly cookies and database persistence.
-- **Products:** Product catalog and variant management.
-- **Purchases:** Supply chain management, restock flow with automatic HPP calculation, and safe deletion of draft records.
-- **Suppliers:** Supplier database management.
-- **Orders:** Checkout and ordering transactions.
+- **Auth:** Magic Link login with "Access + Refresh Token" system, httpOnly cookies, and Role-Based Access Control (RBAC).
+- **Products:** Product catalog, inventory management, and variant (package) tracking.
+- **Purchases:** Supply chain management, restock flow with automatic HPP calculation, and stock ledger recording.
+- **Orders:** Checkout and ordering transactions with automatic stock deduction.
+- **Stock:** Centralized stock service for handling movements (Purchases, Orders, Repacks, Adjustments).
+- **Repacks:** Split bulk products into smaller retail sizes (e.g., Bal to Small/Medium).
 
 ## Development
 
 ```bash
+# Install dependencies
 bun install
-bun run dev
+
+# Start development server
+bun run start:dev
+
+# Start production server
+bun run start:prod
 ```
 
 ### Database Commands
@@ -29,22 +37,20 @@ bun run dev
 - `bun run db:studio`: Open Drizzle Studio UI
 
 ### Automated Cleanup
-This project includes a strict automated cleanup mechanism powered by **Husky**, **Knip**, and **ESLint**.
-
-- **What it does**: automatically removes unused imports, variables, and **deletes unused files** before every commit.
 - **Manual trigger**: `bun run cleanup`
+- This project uses Husky, Knip, and ESLint to automatically remove unused imports and variables before every commit.
 
-```bash
-vc deploy
-```
+## API Documentation
+The API documentation is fully typed and available via Scalar UI at:
+`http://localhost:3000/docs`
 
 ## Authentication Architecture
 
-The project implements a secure, best-practice authentication system using **Short-Lived Access Tokens** (15m) and **Long-Lived Refresh Tokens** (7d).
+The project implements a secure, best-practice authentication system using **Short-Lived Access Tokens** and **Long-Lived Refresh Tokens** stored in cookies.
 
 ### Token Strategy
-- **Access Token**: Sent in the `Authorization: Bearer` header. Stored in `localStorage`.
-- **Refresh Token**: Sent via a **`httpOnly` Secure Cookie**. This token is stored in the database and is invisible to JavaScript, making it immune to XSS theft.
+- **Access Token**: Sent in the `Authorization: Bearer` header.
+- **Refresh Token**: Sent via a **`httpOnly` Secure Cookie**. This token is stored in the database and is invisible to client-side JavaScript, making it immune to XSS theft.
 
 ### Sequence Diagram
 
@@ -55,17 +61,19 @@ sequenceDiagram
     participant Database
 
     Note over Frontend, Backend: 1. Initial Web Login (Magic Link)
+    Frontend->>Backend: POST /auth/request-login (email)
+    Backend-->>Frontend: 200 OK (Email sent)
     Frontend->>Backend: GET /auth/verify?token=...
-    Backend->>Database: Validate Magic Link
-    Backend->>Database: Create Refresh Token Session
+    Backend->>Database: Validate Magic Link & Session
     Backend-->>Frontend: 200 OK (accessToken)
-    Note right of Backend: Sets SECURE httpOnly cookie: refreshToken
+    Note right of Backend: Sets SECURE httpOnly cookie: refresh_token
 
     Note over Frontend, Backend: 2. Silent Token Refresh (Auto-Interception)
-    Frontend->>Backend: GET /api/products (Expired AccessToken)
+    Frontend->>Backend: GET /api/protected (Expired AccessToken)
     Backend-->>Frontend: 401 Unauthorized
-    Frontend->>Backend: POST /auth/refresh (inc. refreshToken cookie)
-    Backend->>Database: Validate Refresh Token Session
+    Frontend->>Backend: POST /auth/refresh (inc. refresh_token cookie)
+    Backend->>Database: Validate & Rotate Refresh Token Session
     Backend-->>Frontend: 200 OK (New accessToken)
-    Frontend->>Backend: Retry original GET /api/products
+    Note right of Backend: Updates refresh_token cookie
+    Frontend->>Backend: Retry original GET /api/protected
 ```
