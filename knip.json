@@ -1,17 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/main.ts", "src/db/seed-employees.ts"],
-  "project": ["src/**/*.ts", "scripts/**/*.ts", "drizzle.config.ts"],
-  "ignoreDependencies": [
-    "bun-types",
-    "bcrypt",
-    "@types/bcrypt",
-    "pino",
-    "pino-pretty",
-    "@types/pino-pretty",
-    "swagger-ui-express"
-  ],
-  "jest": {
-    "entry": ["src/**/*.spec.ts"]
-  }
+  "entry": ["src/main.ts"],
+  "project": ["src/**/*.ts"],
+  "ignore": ["test/**/*", "src/db/seed*.ts", "src/db/migrate.ts"],
+  "ignoreDependencies": ["@scalar/nestjs-api-reference", "pino-pretty", "pg", "bcrypt", "cookie-parser"],
+  "ignoreBinaries": ["husky"]
 }

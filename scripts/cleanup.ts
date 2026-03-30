@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { unlinkSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-console.log("🚀 Starting automated cleanup...");
+console.log("🚀 Starting automated cleanup for pns-server...");
 
 // 1. Run ESLint Fix
 console.log("🔍 Running ESLint to remove unused code...");
@@ -26,16 +26,18 @@ try {
   let filesDeleted = 0;
 
   if (output.issues) {
-    // Only delete files that are NOT entry points or in src root if unsure
-    // For now, let's be more conservative and just report or allow the user to decide
-    // But since the user wants ME to fix the warnings, I should probably improve the script
-    
     if (output.issues.files) {
       for (const file of output.issues.files) {
         const filePath = join(process.cwd(), file);
-        // BE CAREFUL: Don't delete entry points!
-        if (file.endsWith('main.ts') || file.endsWith('app.module.ts')) {
-             console.log(`🛡️ Skipping entry point: ${file}`);
+        
+        // Skip common NestJS entry points and special files
+        if (
+          file.endsWith('main.ts') || 
+          file.endsWith('app.module.ts') ||
+          file.includes('seed') ||
+          file.includes('migrate')
+        ) {
+             console.log(`🛡️ Skipping entry point or special file: ${file}`);
              continue;
         }
         
@@ -55,6 +57,7 @@ try {
   }
 } catch (e) {
   console.error("❌ Failed to parse Knip output:", e);
+  console.log("Knip output was:", knipResult.stdout);
 }
 
 console.log("✨ Cleanup process finished!");

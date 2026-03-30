@@ -1,6 +1,20 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-echo "🧹 Running pre-commit cleanup..."
+echo "✨ PNS-SERVER Pre-commit Hook"
+echo "----------------------------"
+
+# Ensure dependencies are up to date
+rm -rf node_modules && bun install || exit 1
+
+echo "🧹 Running code cleanup (removing unused code/files)..."
 bun run cleanup || exit 1
+
+echo "🔍 Running type checking..."
+bun run type-check || exit 1
+
+echo "🔍 Running lint-staged check..."
 bun x lint-staged || exit 1
+
+echo "✅ Pre-commit checks passed!"
+echo ""
