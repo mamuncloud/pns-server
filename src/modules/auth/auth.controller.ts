@@ -1,8 +1,11 @@
-import { Controller, Post, Body, Get, Query, Res, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Res, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { Response, Request as ExpressRequest } from 'express';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -74,10 +77,13 @@ export class AuthController {
   }
 
   @Post('logout')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ANY_EMPLOYEE')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and clear refresh token' })
   @ApiResponse({ status: 201, description: 'Logged out successfully' })
   async logout(
-    @Req() req: ExpressRequest,
+    @Req() req: any,
     @Res({ passthrough: true }) res: Response
   ) {
     const refreshToken = req.cookies['refresh_token'];
@@ -94,5 +100,18 @@ export class AuthController {
     });
 
     return { success: true };
+  }
+
+  @Get('profile')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ANY_EMPLOYEE')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
+  async getProfile(@Req() req: any) {
+    return {
+      message: 'Berhasil mengambil profil pengguna',
+      data: req.user,
+    };
   }
 }

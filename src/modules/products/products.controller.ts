@@ -1,11 +1,14 @@
-import { Controller, Get, Param, NotFoundException, Query, Post, Body, Patch } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, Query, Post, Body, Patch, UseGuards } from '@nestjs/common';
 import { ProductsService, UpdateProductDto } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { ApiOperation, ApiResponse, ApiTags, ApiParam } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { PricingRulesService } from './pricing-rules.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Products')
 @Controller('products')
@@ -16,6 +19,9 @@ export class ProductsController {
   ) {}
 
   @Get('brands')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ANY_EMPLOYEE')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all brands' })
   @ApiResponse({ status: 200, description: 'Brands retrieved successfully' })
   async findBrands() {
@@ -27,6 +33,9 @@ export class ProductsController {
   }
 
   @Post('brands')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('MANAGER')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create new brand' })
   @ApiResponse({ status: 201, description: 'Brand created successfully' })
   async createBrand(@Body() dto: CreateBrandDto) {
@@ -73,6 +82,9 @@ export class ProductsController {
   }
 
   @Get(':id/pricing')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ANY_EMPLOYEE')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get pricing rules for a product' })
   @ApiParam({ name: 'id', description: 'Unique identifier of the product' })
   @ApiResponse({ status: 200, description: 'Pricing rules retrieved successfully' })
@@ -85,6 +97,9 @@ export class ProductsController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('MANAGER')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create new product', description: 'Creates a new product with its variants, images, and pricing rules.' })
   @ApiResponse({ status: 201, description: 'Product created successfully' })
   async create(@Body() dto: CreateProductDto) {
@@ -96,6 +111,9 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('MANAGER')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update product', description: 'Updates an existing product\'s basic fields.' })
   @ApiParam({ name: 'id', description: 'Unique identifier of the product' })
   @ApiResponse({ status: 200, description: 'Product updated successfully' })
