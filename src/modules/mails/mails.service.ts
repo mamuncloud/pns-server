@@ -54,4 +54,36 @@ export class MailsService {
       return { success: false, error: err };
     }
   }
+
+  async sendWelcomeEmail(email: string, userName: string) {
+    try {
+      this.logger.log(`Sending welcome email to ${email}`);
+      
+      const { data, error } = await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: 'Welcome to Planet Nyemil Snack (PNS)',
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #333;">Welcome aboard, ${userName}!</h2>
+            <p style="color: #666; font-size: 16px;">An account has been created for you at Planet Nyemil Snack (PNS).</p>
+            <p style="color: #666; font-size: 16px;">To access your dashboard, navigate to the login page and request a magic link using this email address: <strong>${email}</strong>.</p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="color: #ccc; font-size: 10px; text-align: center;">&copy; ${new Date().getFullYear()} PNS - Pas Nenan Seleranya</p>
+          </div>
+        `,
+      });
+
+      if (error) {
+        this.logger.error(`Failed to send welcome email to ${email}: ${JSON.stringify(error)}`);
+        return { success: false, error };
+      }
+
+      this.logger.log(`Welcome email sent successfully to ${email}. ID: ${data?.id}`);
+      return { success: true, data };
+    } catch (err) {
+      this.logger.error(`Unexpected error sending welcome email to ${email}: ${err.message}`);
+      return { success: false, error: err };
+    }
+  }
 }

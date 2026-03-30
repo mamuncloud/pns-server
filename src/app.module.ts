@@ -13,6 +13,7 @@ import { SuppliersModule } from 'src/modules/suppliers/suppliers.module';
 import { StoreSettingsModule } from 'src/modules/store-settings/store-settings.module';
 import { RepacksModule } from 'src/modules/repacks/repacks.module';
 import { StockModule } from 'src/modules/stock/stock.module';
+import { EmployeesModule } from 'src/modules/employees/employees.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { StockModule } from 'src/modules/stock/stock.module';
     SuppliersModule,
     StoreSettingsModule,
     RepacksModule,
+    EmployeesModule,
   ],
 })
 export class AppModule {}
