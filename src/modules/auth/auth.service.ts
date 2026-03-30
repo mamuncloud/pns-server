@@ -6,6 +6,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import * as crypto from 'crypto';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class AuthService {
@@ -16,46 +17,79 @@ export class AuthService {
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
     private readonly mailsService: MailsService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
-  async requestLogin(email: string) {
-    // 1. Check if employee exists
-    const employee = await this.db.query.employees.findFirst({
-      where: eq(schema.employees.email, email),
-    });
+  async requestStaffLogin(identifier: string) {
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+    const isPhone = /^\+?[0-9]{10,15}$/.test(identifier.replace(/\s/g, ''));
 
-    // 2. Check if user exists (consumer)
-    const user = !employee ? await this.db.query.users.findFirst({
-      where: eq(schema.users.email, email),
-    }) : null;
-
-    if (!employee && !user) {
-      // For security reasons, don't reveal if the email exists
-      this.logger.warn(`Login attempt for non-existent email: ${email}`);
-      return { message: 'If you are registered, a login link will be sent to your email.' };
+    if (!isEmail && !isPhone) {
+      throw new UnauthorizedException('Please enter a valid email address or phone number.');
     }
 
-    // 3. Generate token
+    // 1. Check if employee exists
+    let employee;
+    if (isEmail) {
+      employee = await this.db.query.employees.findFirst({
+        where: eq(schema.employees.email, identifier),
+      });
+    } else {
+      // Normalize phone for lookup
+      let normalizedPhone = identifier.replace(/\D/g, '');
+      if (normalizedPhone.startsWith('0')) {
+        normalizedPhone = '62' + normalizedPhone.slice(1);
+      } else if (!normalizedPhone.startsWith('62')) {
+        normalizedPhone = '62' + normalizedPhone;
+      }
+
+      employee = await this.db.query.employees.findFirst({
+        where: eq(schema.employees.phone, normalizedPhone),
+      });
+    }
+
+    if (!employee) {
+      // For security, return generic message but log warning
+      this.logger.warn(`Login attempt for non-existent staff identifier: ${identifier}`);
+      return { 
+        message: `If you are registered, a login link will be sent to your ${isEmail ? 'email' : 'WhatsApp'}.`,
+        type: isEmail ? 'EMAIL' : 'WHATSAPP'
+      };
+    }
+
+    // 2. Generate token
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 15); // 15 minutes expiry
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
-    // 4. Store token
+    // 3. Store token
     await this.db.insert(schema.authTokens).values({
-      employeeId: employee?.id || null,
-      userId: user?.id || null,
+      employeeId: employee.id,
       token,
       expiresAt,
     });
 
-    // 5. Send real email
+    // 4. Send link
     const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const magicLink = `${frontendUrl}/staff/verify?token=${token}`;
-    
-    const userName = employee?.name || user?.name || 'User';
-    await this.mailsService.sendMagicLink(email, magicLink, userName);
-    
-    return { message: 'If you are registered, a login link will be sent to your email.' };
+    const magicLink = `${frontendUrl}/verify?token=${token}`;
+    const userName = employee.name || 'Staff';
+
+    if (isEmail) {
+      await this.mailsService.sendMagicLink(identifier, magicLink, userName);
+    } else {
+      const message = `Halo ${userName}! 👋\n\nBerikut adalah link login magic link Anda untuk masuk ke sistem PNS:\n\n${magicLink}\n\nLink ini akan kadaluarsa dalam 15 menit.`;
+      await this.whatsappService.sendMessage(identifier, message);
+    }
+
+    return { 
+      message: `If you are registered, a login link will be sent to your ${isEmail ? 'email' : 'WhatsApp'}.`,
+      type: isEmail ? 'EMAIL' : 'WHATSAPP'
+    };
+  }
+
+  async requestLogin(email: string) {
+    // Keep for potential legacy use or public users
+    return this.requestStaffLogin(email);
   }
 
   async verifyLogin(token: string) {

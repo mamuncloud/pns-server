@@ -2,6 +2,7 @@ import { Controller, Post, Body, Get, Query, Res, Req, UnauthorizedException, Us
 import { AuthService } from './auth.service';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoginRequestDto } from './dto/login-request.dto';
+import { StaffLoginRequestDto } from './dto/staff-login-request.dto';
 import { Response, Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
@@ -18,6 +19,14 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'Magic link request handled. Generic message returned for security.' })
   async requestLogin(@Body() loginDto: LoginRequestDto) {
     return this.authService.requestLogin(loginDto.email);
+  }
+
+  @Post('staff/request')
+  @ApiOperation({ summary: 'Request a magic link for staff login (Email or WhatsApp)' })
+  @ApiBody({ type: StaffLoginRequestDto })
+  @ApiResponse({ status: 201, description: 'Magic link request handled. Generic message returned for security.' })
+  async requestStaffLogin(@Body() staffLoginDto: StaffLoginRequestDto) {
+    return this.authService.requestStaffLogin(staffLoginDto.identifier);
   }
 
   @Get('verify')

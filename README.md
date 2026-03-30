@@ -17,6 +17,7 @@ A high-performance backend server built with Bun, NestJS, and Drizzle ORM.
 - **Orders:** Checkout and ordering transactions with automatic stock deduction.
 - **Stock:** Centralized stock service for handling movements (Purchases, Orders, Repacks, Adjustments).
 - **Repacks:** Split bulk products into smaller retail sizes (e.g., Bal to Small/Medium).
+- **WhatsApp Notifier:** Embedded Baileys-based WhatsApp service for sending magic links and system notifications.
 
 ## Development
 
@@ -76,4 +77,35 @@ sequenceDiagram
     Backend-->>Frontend: 200 OK (New accessToken)
     Note right of Backend: Updates refresh_token cookie
     Frontend->>Backend: Retry original GET /api/protected
+```
+
+### WhatsApp Login Flow
+
+The system supports a unified staff login that automatically detects the input type (Email or Phone).
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Web as PNS Web (Next.js)
+    participant Server as PNS Server (NestJS)
+    participant WA as WhatsApp (Baileys)
+    participant DB as Database (Postgres)
+
+    User->>Web: Enter Email/Phone
+    Web->>Server: POST /auth/staff/request { identifier }
+    Server->>DB: Find Employee by Email/Phone
+    alt is Email
+        Server->>Server: Generate Magic Link Token
+        Server->>Server: Send Email
+    else is Phone
+        Server->>Server: Generate Magic Link Token
+        Server->>WA: Send Message (Baileys)
+        WA-->>User: Magic Link Received
+    end
+    Server-->>Web: 200 OK
+    
+    User->>Web: Click Magic Link
+    Web->>Server: GET /auth/verify?token=...
+    Server-->>Web: 200 OK (JWT)
+    Web->>User: Redirect to Dashboard
 ```
