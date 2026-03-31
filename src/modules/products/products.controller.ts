@@ -1,8 +1,8 @@
 import { Controller, Get, Param, NotFoundException, Query, Post, Body, Patch, UseGuards } from '@nestjs/common';
 import { ProductsService, UpdateProductDto } from './products.service';
-import { CreateProductDto } from './dto/create-product.dto';
+import { CreateProductDto, CreateVariantDto } from './dto/create-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { PricingRulesService } from './pricing-rules.service';
@@ -123,6 +123,23 @@ export class ProductsController {
     return {
       message: 'Berhasil memperbarui produk',
       data: result,
+    };
+  }
+
+  @Post(':id/variants')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('MANAGER')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create new variant', description: 'Adds a new variant to an existing product.' })
+  @ApiParam({ name: 'id', description: 'Unique identifier of the product' })
+  @ApiBody({ type: CreateVariantDto })
+  @ApiResponse({ status: 201, description: 'Variant created successfully' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async createVariant(@Param('id') id: string, @Body() dto: CreateVariantDto) {
+    const variant = await this.productsService.createVariant(id, dto);
+    return {
+      message: 'Berhasil menambahkan varian baru',
+      data: variant,
     };
   }
 }
