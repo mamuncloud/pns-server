@@ -29,6 +29,12 @@ export const productVariantLabelEnum = pgEnum("ProductVariantLabel", [
 
 export const purchaseStatusEnum = pgEnum("PurchaseStatus", ["DRAFT", "COMPLETED"]);
 
+export const consignmentStatusEnum = pgEnum("ConsignmentStatus", [
+  "OPEN",
+  "PARTIALLY_SETTLED",
+  "CLOSED",
+]);
+
 export const stockMovementTypeEnum = pgEnum("StockMovementType", [
   "PURCHASE",
   "PURCHASE_REVERSAL",
@@ -37,6 +43,8 @@ export const stockMovementTypeEnum = pgEnum("StockMovementType", [
   "REPACK_TARGET",
   "ADJUSTMENT",
   "RETURN",
+  "CONSIGNMENT_IN",
+  "CONSIGNMENT_OUT",
 ]);
 
 // Tables
@@ -254,6 +262,39 @@ export const purchaseItems = pgTable("purchase_items", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const consignments = pgTable("consignments", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  supplierId: varchar("supplierId", { length: 255 })
+    .references(() => suppliers.id)
+    .notNull(),
+  date: timestamp("date").notNull(),
+  note: text("note"),
+  status: consignmentStatusEnum("status").default("OPEN").notNull(),
+  totalAmount: integer("totalAmount").notNull(),
+  totalSettled: integer("totalSettled").default(0).notNull(),
+  attachmentUrl: text("attachmentUrl"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const consignmentItems = pgTable("consignment_items", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  consignmentId: varchar("consignmentId", { length: 255 })
+    .references(() => consignments.id, { onDelete: "cascade" })
+    .notNull(),
+  productVariantId: varchar("productVariantId", { length: 255 })
+    .references(() => productVariants.id)
+    .notNull(),
+  qtyReceived: integer("qtyReceived").notNull(),
+  qtyReturned: integer("qtyReturned").default(0).notNull(),
+  qtySettled: integer("qtySettled").default(0).notNull(),
+  unitCost: integer("unitCost").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 
 export const storeSettings = pgTable("store_settings", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -381,6 +422,7 @@ export const productVariantsRelations = relations(productVariants, ({ one, many 
   repacksAsSource: many(repacks),
   repacksAsTarget: many(repackItems),
   stockMovements: many(stockMovements),
+  consignmentItems: many(consignmentItems),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
@@ -415,6 +457,7 @@ export const loyaltyPointsRelations = relations(loyaltyPoints, ({ one }) => ({
 
 export const suppliersRelations = relations(suppliers, ({ many }) => ({
   purchases: many(purchases),
+  consignments: many(consignments),
 }));
 
 export const purchasesRelations = relations(purchases, ({ one, many }) => ({
@@ -462,6 +505,25 @@ export const repackItemsRelations = relations(repackItems, ({ one }) => ({
 export const stockMovementsRelations = relations(stockMovements, ({ one }) => ({
   productVariant: one(productVariants, {
     fields: [stockMovements.productVariantId],
+    references: [productVariants.id],
+  }),
+}));
+
+export const consignmentsRelations = relations(consignments, ({ one, many }) => ({
+  supplier: one(suppliers, {
+    fields: [consignments.supplierId],
+    references: [suppliers.id],
+  }),
+  items: many(consignmentItems),
+}));
+
+export const consignmentItemsRelations = relations(consignmentItems, ({ one }) => ({
+  consignment: one(consignments, {
+    fields: [consignmentItems.consignmentId],
+    references: [consignments.id],
+  }),
+  productVariant: one(productVariants, {
+    fields: [consignmentItems.productVariantId],
     references: [productVariants.id],
   }),
 }));

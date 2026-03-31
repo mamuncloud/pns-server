@@ -1,14 +1,15 @@
-import { Controller, Get, Param, NotFoundException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, NotFoundException, UseGuards } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateSupplierDto } from './dto/create-supplier.dto';
 
 @ApiTags('Suppliers')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('MANAGER')
+@Roles('MANAGER', 'CASHIER')
 @Controller('suppliers')
 export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}
@@ -18,6 +19,18 @@ export class SuppliersController {
   @ApiResponse({ status: 200, description: 'Suppliers retrieved successfully' })
   async findAll() {
     return this.suppliersService.findAll();
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create new supplier' })
+  @ApiBody({ type: CreateSupplierDto })
+  @ApiResponse({ status: 201, description: 'Supplier created successfully' })
+  async create(@Body() createSupplierDto: CreateSupplierDto) {
+    const supplier = await this.suppliersService.create(createSupplierDto);
+    return {
+      message: 'Berhasil mendaftarkan supplier baru',
+      data: supplier,
+    };
   }
 
   @Get(':id')
