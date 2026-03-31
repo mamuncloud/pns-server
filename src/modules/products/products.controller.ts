@@ -1,6 +1,7 @@
 import { Controller, Get, Param, NotFoundException, Query, Post, Body, Patch, UseGuards } from '@nestjs/common';
-import { ProductsService, UpdateProductDto } from './products.service';
+import { ProductsService } from './products.service';
 import { CreateProductDto, CreateVariantDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';

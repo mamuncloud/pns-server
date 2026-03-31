@@ -7,12 +7,8 @@ import { ConfigService } from '@nestjs/config';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { generateNextSku } from '../../lib/sku-generator.util';
-
-export class UpdateProductDto {
-  name?: string;
-  description?: string;
-  brandId?: string;
-}
+import { UpdateProductDto } from './dto/update-product.dto';
+import { and, inArray } from 'drizzle-orm';
 
 @Injectable()
 export class ProductsService {
@@ -200,27 +196,71 @@ export class ProductsService {
   }
 
   async update(id: string, dto: UpdateProductDto) {
-    const product = await this.db.query.products.findFirst({
-      where: eq(schema.products.id, id),
+    return await this.db.transaction(async (tx) => {
+      const product = await tx.query.products.findFirst({
+        where: eq(schema.products.id, id),
+      });
+
+      if (!product) {
+        throw new NotFoundException(`Produk dengan ID ${id} tidak ditemukan`);
+      }
+
+      // 1. Update basic product info
+      const updateValues: Partial<typeof schema.products.$inferInsert> = {};
+      if (dto.name !== undefined) updateValues.name = dto.name;
+      if (dto.description !== undefined) updateValues.description = dto.description;
+      if (dto.brandId !== undefined) updateValues.brandId = dto.brandId;
+      if (dto.taste !== undefined) updateValues.taste = dto.taste;
+
+      if (Object.keys(updateValues).length > 0) {
+        await tx
+          .update(schema.products)
+          .set(updateValues)
+          .where(eq(schema.products.id, id));
+      }
+
+      // 2. Remove images if requested
+      if (dto.removeImageIds && dto.removeImageIds.length > 0) {
+        await tx
+          .delete(schema.productImages)
+          .where(
+            and(
+              eq(schema.productImages.productId, id),
+              inArray(schema.productImages.id, dto.removeImageIds)
+            )
+          );
+      }
+
+      // 3. Handle image updates/additions
+      if (dto.images && dto.images.length > 0) {
+        for (const imgDto of dto.images) {
+          if (imgDto.id) {
+            // Update existing image
+            await tx
+              .update(schema.productImages)
+              .set({
+                url: imgDto.url,
+                isPrimary: imgDto.isPrimary,
+              })
+              .where(
+                and(
+                  eq(schema.productImages.id, imgDto.id),
+                  eq(schema.productImages.productId, id)
+                )
+              );
+          } else {
+            // Add new image
+            await tx.insert(schema.productImages).values({
+              productId: id,
+              url: imgDto.url,
+              isPrimary: imgDto.isPrimary,
+            });
+          }
+        }
+      }
+
+      return this.findOne(id);
     });
-
-    if (!product) {
-      throw new NotFoundException(`Produk dengan ID ${id} tidak ditemukan`);
-    }
-
-    const updateValues: Partial<typeof schema.products.$inferInsert> = {};
-    if (dto.name !== undefined) updateValues.name = dto.name;
-    if (dto.description !== undefined) updateValues.description = dto.description;
-    if (dto.brandId !== undefined) updateValues.brandId = dto.brandId;
-
-    if (Object.keys(updateValues).length > 0) {
-      await this.db
-        .update(schema.products)
-        .set(updateValues)
-        .where(eq(schema.products.id, id));
-    }
-
-    return this.findOne(id);
   }
 
   async findBrands(search?: string) {
