@@ -2,10 +2,11 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
-import { eq, sql, like } from 'drizzle-orm';
+import { eq, sql, like, desc } from 'drizzle-orm';
 import { ConfigService } from '@nestjs/config';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
+import { generateNextSku } from '../../lib/sku-generator.util';
 
 export class UpdateProductDto {
   name?: string;
@@ -242,5 +243,38 @@ export class ProductsService {
       })
       .returning();
     return brand;
+  }
+
+  async createVariant(productId: string, dto: { package: string; price: number; initialStock?: number; sku?: string; sizeInGram?: number }) {
+    return await this.db.transaction(async (tx) => {
+      const product = await tx.query.products.findFirst({
+        where: eq(schema.products.id, productId),
+      });
+
+      if (!product) {
+        throw new NotFoundException(`Produk dengan ID ${productId} tidak ditemukan`);
+      }
+
+      const lastVariant = await tx.query.productVariants.findFirst({
+        where: eq(schema.productVariants.productId, productId),
+        orderBy: [desc(schema.productVariants.createdAt)],
+      });
+
+      const sku = dto.sku || generateNextSku(lastVariant?.sku || null);
+
+      const [variant] = await tx
+        .insert(schema.productVariants)
+        .values({
+          productId,
+          package: dto.package as typeof schema.productVariantLabelEnum.enumValues[number],
+          price: dto.price,
+          stock: dto.initialStock ?? 0,
+          sku,
+          sizeInGram: dto.sizeInGram,
+        })
+        .returning();
+
+      return variant;
+    });
   }
 }
