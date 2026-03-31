@@ -76,8 +76,8 @@ export class PurchasesService {
     });
   }
 
-  async findAll() {
-    return await this.db.query.purchases.findMany({
+  async findAll(search?: string) {
+    const purchases = await this.db.query.purchases.findMany({
       with: {
         supplier: true,
         items: {
@@ -93,6 +93,12 @@ export class PurchasesService {
       },
       orderBy: (purchases, { desc }) => [desc(purchases.date)],
     });
+
+    if (!search) return purchases;
+
+    return purchases.filter((purchase) =>
+      purchase.supplier?.name?.toLowerCase().includes(search.toLowerCase())
+    );
   }
 
   async findOne(id: string) {

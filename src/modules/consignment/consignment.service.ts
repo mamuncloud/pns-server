@@ -50,8 +50,8 @@ export class ConsignmentService {
     });
   }
 
-  async findAll() {
-    return await this.db.query.consignments.findMany({
+  async findAll(search?: string) {
+    const consignments = await this.db.query.consignments.findMany({
       with: {
         supplier: true,
         items: {
@@ -66,6 +66,12 @@ export class ConsignmentService {
       },
       orderBy: [desc(schema.consignments.createdAt)],
     });
+
+    if (!search) return consignments;
+
+    return consignments.filter((consignment) =>
+      consignment.supplier?.name?.toLowerCase().includes(search.toLowerCase())
+    );
   }
 
   async findOne(id: string) {

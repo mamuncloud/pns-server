@@ -18,12 +18,14 @@ export class StockController {
   @ApiOperation({ summary: 'Get stock movement history (ledger)' })
   @ApiQuery({ name: 'productVariantId', required: false, description: 'Filter by product variant ID' })
   @ApiQuery({ name: 'productId', required: false, description: 'Filter by product ID' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search movements by product name' })
   @ApiResponse({ status: 200, description: 'Stock movements retrieved successfully' })
   async findAll(
     @Query('productVariantId') productVariantId?: string,
-    @Query('productId') productId?: string
+    @Query('productId') productId?: string,
+    @Query('search') search?: string
   ) {
-    return this.stockService.findAll({ productVariantId, productId });
+    return this.stockService.findAll({ productVariantId, productId, search });
   }
 
   @Post('adjust')

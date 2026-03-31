@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { IsInt, IsOptional, Min, IsString } from 'class-validator';
 
 export class PaginationQueryDto {
   @ApiProperty({
@@ -34,6 +34,15 @@ export class PaginationQueryDto {
   })
   @IsOptional()
   taste?: string;
+
+  @ApiProperty({
+    description: 'Search by name',
+    required: false,
+    example: 'ro',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
 
 class PaginationMetaDto {

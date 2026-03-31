@@ -63,9 +63,10 @@ export class OrdersService {
     });
   }
 
-  async findAll() {
-    return this.db.query.orders.findMany({
+  async findAll(search?: string) {
+    const orders = await this.db.query.orders.findMany({
       with: {
+        user: true,
         items: {
           with: {
             productVariant: {
@@ -78,6 +79,12 @@ export class OrdersService {
       },
       orderBy: (orders, { desc }) => [desc(orders.createdAt)],
     });
+
+    if (!search) return orders;
+
+    return orders.filter((order) =>
+      order.user?.name?.toLowerCase().includes(search.toLowerCase())
+    );
   }
 
   async findOne(id: string) {

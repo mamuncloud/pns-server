@@ -69,9 +69,9 @@ export class StockService {
   }
 
   /**
-   * Get all stock movements, optionally filtered by productVariantId.
+   * Get all stock movements, optionally filtered by productVariantId, productId, or search by product name.
    */
-  async findAll(params?: { productVariantId?: string; productId?: string }) {
+  async findAll(params?: { productVariantId?: string; productId?: string; search?: string }) {
     let variantIds: string[] = [];
 
     if (params?.productId) {
@@ -88,7 +88,7 @@ export class StockService {
       variantIds = [params.productVariantId];
     }
 
-    return this.db.query.stockMovements.findMany({
+    const movements = await this.db.query.stockMovements.findMany({
       where: variantIds.length > 0
         ? inArray(schema.stockMovements.productVariantId, variantIds)
         : undefined,
@@ -101,6 +101,12 @@ export class StockService {
       },
       orderBy: [desc(schema.stockMovements.createdAt)],
     });
+
+    if (!params?.search) return movements;
+
+    return movements.filter((movement) =>
+      movement.productVariant?.product?.name?.toLowerCase().includes(params.search!.toLowerCase())
+    );
   }
 
   /**

@@ -4,7 +4,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { eq } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import { MailsService } from '../mails/mails.service';
 
 @Injectable()
@@ -37,7 +37,13 @@ export class EmployeesService {
     return newEmployee;
   }
 
-  async findAll() {
+  async findAll(search?: string) {
+    if (search) {
+      return this.db.query.employees.findMany({
+        where: like(schema.employees.name, `%${search}%`),
+        orderBy: (employees, { desc }) => [desc(employees.createdAt)],
+      });
+    }
     return this.db.query.employees.findMany({
       orderBy: (employees, { desc }) => [desc(employees.createdAt)],
     });

@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Param, NotFoundException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, NotFoundException, Query, UseGuards } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -16,9 +16,10 @@ export class SuppliersController {
 
   @Get()
   @ApiOperation({ summary: 'Get all suppliers' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search suppliers by name' })
   @ApiResponse({ status: 200, description: 'Suppliers retrieved successfully' })
-  async findAll() {
-    return this.suppliersService.findAll();
+  async findAll(@Query('search') search?: string) {
+    return this.suppliersService.findAll(search);
   }
 
   @Post()

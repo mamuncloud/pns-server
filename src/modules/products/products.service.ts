@@ -2,7 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
-import { eq, sql, desc } from 'drizzle-orm';
+import { eq, sql, like, desc } from 'drizzle-orm';
 import { ConfigService } from '@nestjs/config';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
@@ -40,10 +40,15 @@ export class ProductsService {
     return `${this.storageUrl}/${imageUrl}`;
   }
 
-  async findAll(page: number = 1, limit: number = 10, taste?: string) {
+  async findAll(page: number = 1, limit: number = 10, taste?: string, search?: string) {
     const offset = (page - 1) * limit;
 
-    const where = taste ? sql`${schema.products.taste} @> ARRAY[${taste}]::"ProductTaste"[]` : undefined;
+    let where = taste ? sql`${schema.products.taste} @> ARRAY[${taste}]::"ProductTaste"[]` : undefined;
+
+    if (search) {
+      const searchWhere = like(schema.products.name, `%${search}%`);
+      where = where ? sql`${where} AND ${searchWhere}` : searchWhere;
+    }
 
     const rawData = await this.db.query.products.findMany({
       limit,
@@ -218,7 +223,13 @@ export class ProductsService {
     return this.findOne(id);
   }
 
-  async findBrands() {
+  async findBrands(search?: string) {
+    if (search) {
+      return this.db.query.brands.findMany({
+        where: like(schema.brands.name, `%${search}%`),
+        orderBy: (brands, { asc }) => [asc(brands.name)],
+      });
+    }
     return this.db.query.brands.findMany({
       orderBy: (brands, { asc }) => [asc(brands.name)],
     });

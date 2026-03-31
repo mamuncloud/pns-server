@@ -1,5 +1,5 @@
-import { Controller, Post, Body, Get, Param, NotFoundException, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Post, Body, Get, Param, NotFoundException, Query, UseGuards } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,9 +23,10 @@ export class OrdersController {
 
   @Get()
   @ApiOperation({ summary: 'Get all orders' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search orders by user name' })
   @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
-  async findAll() {
-    return this.ordersService.findAll();
+  async findAll(@Query('search') search?: string) {
+    return this.ordersService.findAll(search);
   }
 
   @Get(':id')
