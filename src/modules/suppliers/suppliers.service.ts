@@ -3,6 +3,7 @@ import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq } from 'drizzle-orm';
+import { CreateSupplierDto } from './dto/create-supplier.dto';
 
 @Injectable()
 export class SuppliersService {
@@ -22,5 +23,13 @@ export class SuppliersService {
     return this.db.query.suppliers.findFirst({
       where: eq(schema.suppliers.id, id),
     });
+  }
+
+  async create(createSupplierDto: CreateSupplierDto) {
+    const [supplier] = await this.db
+      .insert(schema.suppliers)
+      .values(createSupplierDto)
+      .returning();
+    return supplier;
   }
 }
