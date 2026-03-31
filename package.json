@@ -18,6 +18,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "bun run src/db/seed.ts",
     "db:seed:employees": "bun run src/db/seed-employees.ts",
+    "db:seed:products": "bun run src/db/seed-products.ts",
     "cleanup": "bun run scripts/cleanup.ts",
     "prepare": "husky"
   },

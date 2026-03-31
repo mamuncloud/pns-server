@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { PurchasesService } from './purchases.service';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -24,8 +24,9 @@ export class PurchasesController {
 
   @Get()
   @ApiOperation({ summary: 'Mendapatkan semua riwayat pembelian' })
-  findAll() {
-    return this.purchasesService.findAll();
+  @ApiQuery({ name: 'search', required: false, description: 'Search purchases by supplier name' })
+  findAll(@Query('search') search?: string) {
+    return this.purchasesService.findAll(search);
   }
 
   @Get(':id')

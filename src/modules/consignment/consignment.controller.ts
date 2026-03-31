@@ -4,9 +4,10 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -31,9 +32,10 @@ export class ConsignmentController {
   @Get()
   @Roles('MANAGER', 'CASHIER')
   @ApiOperation({ summary: 'Dapatkan semua daftar nota konsinyasi' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search consignments by supplier name' })
   @ApiResponse({ status: 200, description: 'Daftar nota berhasil ditemukan' })
-  async findAll() {
-    return await this.consignmentService.findAll();
+  async findAll(@Query('search') search?: string) {
+    return await this.consignmentService.findAll(search);
   }
 
   @Get(':id')

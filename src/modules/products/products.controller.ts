@@ -2,7 +2,7 @@ import { Controller, Get, Param, NotFoundException, Query, Post, Body, Patch, Us
 import { ProductsService, UpdateProductDto } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { PricingRulesService } from './pricing-rules.service';
@@ -23,9 +23,10 @@ export class ProductsController {
   @Roles('ANY_EMPLOYEE')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all brands' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search brands by name' })
   @ApiResponse({ status: 200, description: 'Brands retrieved successfully' })
-  async findBrands() {
-    const brands = await this.productsService.findBrands();
+  async findBrands(@Query('search') search?: string) {
+    const brands = await this.productsService.findBrands(search);
     return {
       message: 'Berhasil mengambil semua brand',
       data: brands,
@@ -48,10 +49,11 @@ export class ProductsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all products', description: 'Returns a paginated list of all products along with their variants.' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search products by name' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully', type: AllProductsResponseDto })
   async findAll(@Query() query: PaginationQueryDto) {
-    const { page, limit, taste } = query;
-    const { data, totalItems } = await this.productsService.findAll(page, limit, taste);
+    const { page, limit, taste, search } = query as PaginationQueryDto & { search?: string };
+    const { data, totalItems } = await this.productsService.findAll(page, limit, taste, search);
     
     return {
       message: 'Berhasil mengambil semua produk',

@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -25,8 +25,9 @@ export class EmployeesController {
 
   @Get()
   @ApiOperation({ summary: 'List all staff members (MANAGER only)' })
-  findAll() {
-    return this.employeesService.findAll();
+  @ApiQuery({ name: 'search', required: false, description: 'Search employees by name' })
+  findAll(@Query('search') search?: string) {
+    return this.employeesService.findAll(search);
   }
 
   @Get(':id')

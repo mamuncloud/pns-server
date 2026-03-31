@@ -17,8 +17,9 @@ export class RepacksController {
   @Get()
   @ApiOperation({ summary: 'Get all repack history' })
   @ApiQuery({ name: 'productId', required: false, description: 'Filter by product ID' })
-  async findAll(@Query('productId') productId?: string) {
-    return this.repacksService.findAll(productId);
+  @ApiQuery({ name: 'search', required: false, description: 'Search repacks by product name' })
+  async findAll(@Query('productId') productId?: string, @Query('search') search?: string) {
+    return this.repacksService.findAll(productId, search);
   }
 
   @Post()

@@ -14,8 +14,8 @@ export class RepacksService {
     private readonly stockService: StockService,
   ) {}
 
-  async findAll(productId?: string) {
-    return this.db.query.repacks.findMany({
+  async findAll(productId?: string, search?: string) {
+    const repacks = await this.db.query.repacks.findMany({
       where: productId ? eq(schema.repacks.productId, productId) : undefined,
       with: {
         product: true,
@@ -28,6 +28,12 @@ export class RepacksService {
       },
       orderBy: [desc(schema.repacks.createdAt)],
     });
+
+    if (!search) return repacks;
+
+    return repacks.filter((repack) =>
+      repack.product?.name?.toLowerCase().includes(search.toLowerCase())
+    );
   }
 
   async create(dto: CreateRepackDto) {
