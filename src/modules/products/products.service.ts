@@ -49,7 +49,7 @@ export class ProductsService {
     if (hasStock === true || hasStock === 'true' as any) {
       const stockExist = sql`EXISTS (
         SELECT 1 FROM ${schema.productVariants} v 
-        WHERE v.product_id = ${schema.products.id} AND v.stock > 0
+        WHERE v."productId" = ${schema.products.id} AND v.stock > 0
       )`;
       where = where ? and(where, stockExist) : stockExist;
     }
