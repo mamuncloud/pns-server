@@ -43,6 +43,15 @@ export class PaginationQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiProperty({
+    description: 'Filter products that have stock > 0',
+    required: false,
+    example: true,
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  hasStock?: boolean;
 }
 
 class PaginationMetaDto {
