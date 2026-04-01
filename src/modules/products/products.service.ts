@@ -36,14 +36,22 @@ export class ProductsService {
     return `${this.storageUrl}/${imageUrl}`;
   }
 
-  async findAll(page: number = 1, limit: number = 10, taste?: string, search?: string) {
+  async findAll(page: number = 1, limit: number = 10, taste?: string, search?: string, hasStock?: boolean) {
     const offset = (page - 1) * limit;
 
     let where = taste ? sql`${schema.products.taste} @> ARRAY[${taste}]::"ProductTaste"[]` : undefined;
 
     if (search) {
       const searchWhere = like(schema.products.name, `%${search}%`);
-      where = where ? sql`${where} AND ${searchWhere}` : searchWhere;
+      where = where ? and(where, searchWhere) : searchWhere;
+    }
+
+    if (hasStock === true || hasStock === 'true' as any) {
+      const stockExist = sql`EXISTS (
+        SELECT 1 FROM ${schema.productVariants} v 
+        WHERE v.product_id = ${schema.products.id} AND v.stock > 0
+      )`;
+      where = where ? and(where, stockExist) : stockExist;
     }
 
     const rawData = await this.db.query.products.findMany({
