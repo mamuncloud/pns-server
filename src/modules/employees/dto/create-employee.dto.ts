@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export enum EmployeeRole {
   MANAGER = 'MANAGER',
@@ -16,6 +16,12 @@ export class CreateEmployeeDto {
   @IsEmail()
   @IsNotEmpty()
   email: string;
+
+  @ApiProperty({ example: '085723910307', required: false })
+  @IsString()
+  @IsOptional()
+  @MaxLength(16)
+  phone?: string;
 
   @ApiProperty({ enum: EmployeeRole, example: EmployeeRole.CASHIER, default: EmployeeRole.CASHIER })
   @IsEnum(EmployeeRole)

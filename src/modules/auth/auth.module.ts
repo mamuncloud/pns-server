@@ -7,12 +7,14 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { DatabaseModule } from 'src/common/database/database.module';
 import { MailsModule } from '../mails/mails.module';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [
     DatabaseModule,
     PassportModule,
     MailsModule,
+    WhatsAppModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

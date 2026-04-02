@@ -4,7 +4,8 @@ import { DRIZZLE_DB } from '../../common/database/database.module';
 import { MailsService } from '../mails/mails.service';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
+import { eq, and, gt, or } from 'drizzle-orm';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -16,23 +17,30 @@ export class AuthService {
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
     private readonly mailsService: MailsService,
+    private readonly whatsappService: WhatsAppService,
   ) {}
 
-  async requestLogin(email: string) {
-    // 1. Check if employee exists
+  async requestLogin(identifier: string) {
+    // 1. Check if employee exists by email or phone
     const employee = await this.db.query.employees.findFirst({
-      where: eq(schema.employees.email, email),
+      where: or(
+        eq(schema.employees.email, identifier.toLowerCase()),
+        eq(schema.employees.phone, identifier),
+      ),
     });
 
-    // 2. Check if user exists (consumer)
+    // 2. Check if user exists (consumer) by email or phone
     const user = !employee ? await this.db.query.users.findFirst({
-      where: eq(schema.users.email, email),
+      where: or(
+        eq(schema.users.email, identifier.toLowerCase()),
+        eq(schema.users.phone, identifier),
+      ),
     }) : null;
 
     if (!employee && !user) {
-      // For security reasons, don't reveal if the email exists
-      this.logger.warn(`Login attempt for non-existent email: ${email}`);
-      return { message: 'If you are registered, a login link will be sent to your email.' };
+      // For security reasons, don't reveal if the record exists
+      this.logger.warn(`Login attempt for non-existent identifier: ${identifier}`);
+      return { message: 'If you are registered, a login link will be sent to your email and WhatsApp.' };
     }
 
     // 3. Generate token
@@ -53,9 +61,21 @@ export class AuthService {
     const magicLink = `${frontendUrl}/staff/verify?token=${token}`;
     
     const userName = employee?.name || user?.name || 'User';
-    await this.mailsService.sendMagicLink(email, magicLink, userName);
+    const deliveryEmail = employee?.email || user?.email;
+    if (deliveryEmail) {
+      await this.mailsService.sendMagicLink(deliveryEmail, magicLink, userName);
+    }
+
+    // 6. Send via WhatsApp if available
+    const phone = employee?.phone || user?.phone;
+    if (phone) {
+      // Fire & Forget WhatsApp message to avoid delaying the response
+      this.whatsappService.sendMagicLink(phone, magicLink, userName).catch((err) => {
+        this.logger.error(`Error in fire-and-forget WhatsApp send: ${err.message}`);
+      });
+    }
     
-    return { message: 'If you are registered, a login link will be sent to your email.' };
+    return { message: 'If you are registered, a login link will be sent to your email and WhatsApp.' };
   }
 
   async verifyLogin(token: string) {

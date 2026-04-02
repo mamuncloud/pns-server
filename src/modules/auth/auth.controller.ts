@@ -17,7 +17,7 @@ export class AuthController {
   @ApiBody({ type: LoginRequestDto })
   @ApiResponse({ status: 201, description: 'Magic link request handled. Generic message returned for security.' })
   async requestLogin(@Body() loginDto: LoginRequestDto) {
-    return this.authService.requestLogin(loginDto.email);
+    return this.authService.requestLogin(loginDto.identifier);
   }
 
   @Get('verify')
