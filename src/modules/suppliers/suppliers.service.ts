@@ -4,6 +4,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq, like, and } from 'drizzle-orm';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
+import { UpdateSupplierDto } from './dto/update-supplier.dto';
 
 @Injectable()
 export class SuppliersService {
@@ -38,6 +39,15 @@ export class SuppliersService {
     const [supplier] = await this.db
       .insert(schema.suppliers)
       .values(createSupplierDto)
+      .returning();
+    return supplier;
+  }
+
+  async update(id: string, updateSupplierDto: UpdateSupplierDto) {
+    const [supplier] = await this.db
+      .update(schema.suppliers)
+      .set(updateSupplierDto)
+      .where(eq(schema.suppliers.id, id))
       .returning();
     return supplier;
   }
