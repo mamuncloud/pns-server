@@ -7,6 +7,11 @@ export enum OrderType {
   WALK_IN = 'WALK_IN',
 }
 
+export enum PaymentMethod {
+  CASH = 'CASH',
+  QRIS = 'QRIS',
+}
+
 class CreateOrderItemDto {
   @ApiProperty({ example: 'uuid-variant-123' })
   @IsUUID()
@@ -43,4 +48,15 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
+
+  @ApiProperty({ enum: PaymentMethod, default: PaymentMethod.CASH })
+  @IsEnum(PaymentMethod)
+  @IsOptional()
+  paymentMethod?: PaymentMethod = PaymentMethod.CASH;
+
+  @ApiProperty({ example: 50000, required: false })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  paidAmount?: number;
 }

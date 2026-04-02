@@ -19,15 +19,23 @@ export class OrdersService {
       // 1. Calculate total amount
       const totalAmount = dto.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-      // 2. Create order
+      // 2. Calculate change amount and determine status
+      const paidAmount = dto.paidAmount || 0;
+      const changeAmount = Math.max(0, paidAmount - totalAmount);
+      const status = (paidAmount >= totalAmount || dto.orderType === 'WALK_IN') ? 'PAID' : 'PENDING';
+
+      // 3. Create order
       const [order] = await tx.insert(schema.orders).values({
         userId: dto.userId,
         orderType: dto.orderType as any,
         totalAmount: totalAmount,
-        status: 'PENDING',
+        status: status as any,
+        paymentMethod: (dto.paymentMethod || 'CASH') as any,
+        paidAmount: paidAmount,
+        changeAmount: changeAmount,
       }).returning();
 
-      // 3. Create order items and record stock movements
+      // 4. Create order items and record stock movements
       for (const item of dto.items) {
         const variant = await tx.query.productVariants.findFirst({
           where: eq(schema.productVariants.id, item.productVariantId),

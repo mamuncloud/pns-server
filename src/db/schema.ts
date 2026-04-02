@@ -47,6 +47,8 @@ export const stockMovementTypeEnum = pgEnum("StockMovementType", [
   "CONSIGNMENT_OUT",
 ]);
 
+export const paymentMethodEnum = pgEnum("PaymentMethod", ["CASH", "QRIS"]);
+
 // Tables
 export const users = pgTable("users", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -165,6 +167,9 @@ export const orders = pgTable("orders", {
   orderType: orderTypeEnum("orderType").notNull(),
   totalAmount: integer("totalAmount").notNull(),
   status: orderStatusEnum("status").default("PENDING").notNull(),
+  paymentMethod: paymentMethodEnum("paymentMethod").default("CASH").notNull(),
+  paidAmount: integer("paidAmount").default(0).notNull(),
+  changeAmount: integer("changeAmount").default(0).notNull(),
   qrCode: text("qrCode"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
