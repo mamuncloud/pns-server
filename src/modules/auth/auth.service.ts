@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, Logger, Inject } from '@nestjs/commo
 import { JwtService } from '@nestjs/jwt';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { MailsService } from '../mails/mails.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq, and, gt } from 'drizzle-orm';
@@ -16,6 +17,7 @@ export class AuthService {
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
     private readonly mailsService: MailsService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   async requestLogin(email: string) {
@@ -32,7 +34,7 @@ export class AuthService {
     if (!employee && !user) {
       // For security reasons, don't reveal if the email exists
       this.logger.warn(`Login attempt for non-existent email: ${email}`);
-      return { message: 'If you are registered, a login link will be sent to your email.' };
+      return { message: 'If you are registered, a login link will be sent to your email and WhatsApp.' };
     }
 
     // 3. Generate token
@@ -54,8 +56,18 @@ export class AuthService {
     
     const userName = employee?.name || user?.name || 'User';
     await this.mailsService.sendMagicLink(email, magicLink, userName);
+
+    // 6. Send WhatsApp message if phone is available
+    const phone = employee?.phone || user?.phone;
+    if (phone) {
+      const waMessage = `*Planet Nyemil Snack* 🍪\nWelcome back, *${userName}*! 👋\n\nClick the link below to log in to your account. This link will expire in *15 minutes*. ⏳\n\n🔗 ${magicLink}\n\n_If you did not request this link, please ignore this message._`;
+      // Fire and forget - don't block the response
+      this.whatsappService.sendMessage(phone, waMessage).catch((err) => {
+        this.logger.error(`Failed to send WhatsApp message for ${email}: ${err.message}`);
+      });
+    }
     
-    return { message: 'If you are registered, a login link will be sent to your email.' };
+    return { message: 'If you are registered, a login link will be sent to your email and WhatsApp.' };
   }
 
   async verifyLogin(token: string) {
