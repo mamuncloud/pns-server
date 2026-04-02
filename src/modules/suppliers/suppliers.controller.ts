@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Param, NotFoundException, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, NotFoundException, Query, UseGuards, Patch } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
+import { UpdateSupplierDto } from './dto/update-supplier.dto';
 
 @ApiTags('Suppliers')
 @ApiBearerAuth()
@@ -46,6 +47,23 @@ export class SuppliersController {
     }
     return {
       message: 'Berhasil mengambil detail supplier',
+      data: supplier,
+    };
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update supplier' })
+  @ApiParam({ name: 'id', description: 'Unique identifier of the supplier' })
+  @ApiBody({ type: UpdateSupplierDto })
+  @ApiResponse({ status: 200, description: 'Supplier updated successfully' })
+  @ApiResponse({ status: 404, description: 'Supplier not found' })
+  async update(@Param('id') id: string, @Body() updateSupplierDto: UpdateSupplierDto) {
+    const supplier = await this.suppliersService.update(id, updateSupplierDto);
+    if (!supplier) {
+      throw new NotFoundException(`Supplier dengan ID ${id} tidak ditemukan`);
+    }
+    return {
+      message: 'Berhasil memperbarui data supplier',
       data: supplier,
     };
   }
