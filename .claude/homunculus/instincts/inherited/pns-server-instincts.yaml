@@ -1,0 +1,747 @@
+# Instincts generated from https://github.com/mamuncloud/pns-server
+# Generated: 2026-04-02T10:35:24.703Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: pns-server-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: feat, refactor, fix, docs
+
+## Evidence
+
+- 71 commits analyzed
+- Detected conventional commit pattern
+- Examples: feat(auth): add WhatsApp magic link and db:studio script, fix(api): correct productId column name in stock filtering query
+
+---
+id: pns-server-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Commit Length
+
+## Action
+
+Write moderate-length commit messages (~79 characters)
+
+## Evidence
+
+- Average commit message length: 79 chars
+- Based on 71 commits
+
+---
+id: pns-server-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: pns-server-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: pns-server-arch-feature-based
+trigger: "when adding a new feature"
+confidence: 0.85
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Arch Feature Based
+
+## Action
+
+Create a new folder in src/features/ with all related code colocated
+
+## Evidence
+
+- Feature-based module organization detected
+- Structure: src/features/[feature-name]/
+
+---
+id: pns-server-test-framework
+trigger: "when writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Test Framework
+
+## Action
+
+Use jest as the test framework
+
+## Evidence
+
+- Test framework detected: jest
+- File pattern: *.spec.ts
+
+---
+id: pns-server-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Test Naming
+
+## Action
+
+Name test files using the pattern: *.spec.ts
+
+## Evidence
+
+- File pattern: *.spec.ts
+- Consistent across test files
+
+---
+id: pns-server-test-mocking
+trigger: "when mocking dependencies in tests"
+confidence: 0.75
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Test Mocking
+
+## Action
+
+Use jest.mock for mocking
+
+## Evidence
+
+- Mocking pattern detected: jest.mock
+- Consistent across test files
+
+---
+id: pns-server-test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Test Types
+
+## Action
+
+Write unit, e2e tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, e2e
+- Coverage config: yes
+
+---
+id: pns-server-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~22x per month
+- Files: src/db/*, src/modules/products/dto/*, src/modules/purchases/dto/*
+
+---
+id: pns-server-workflow-refactoring
+trigger: "when refactoring code"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Workflow Refactoring
+
+## Action
+
+Follow the refactoring workflow:
+1. Ensure tests pass before refactor
+2. Refactor code structure
+3. Verify tests still pass
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: src/**/*
+
+---
+id: pns-server-workflow-add-or-update-api-endpoint
+trigger: "when doing add or update api endpoint"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Workflow Add Or Update Api Endpoint
+
+## Action
+
+Follow the add-or-update-api-endpoint workflow:
+1. Create or update controller method in src/modules/[module]/[module].controller.ts
+2. Implement or update logic in src/modules/[module]/[module].service.ts
+3. If needed, update or add DTOs in src/modules/[module]/dto/
+4. Update module file if new provider/controller is added
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~6x per month
+- Files: src/modules/*/*.controller.ts, src/modules/*/*.service.ts, src/modules/*/dto/*.ts
+
+---
+id: pns-server-workflow-add-new-feature-module
+trigger: "when doing add new feature module"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Workflow Add New Feature Module
+
+## Action
+
+Follow the add-new-feature-module workflow:
+1. Create module, controller, and service files in src/modules/[feature]/
+2. Add DTOs for input validation in src/modules/[feature]/dto/
+3. Register module in src/app.module.ts
+4. Update schema if persistence is needed
+5. Add e2e or unit tests if applicable
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/modules/*/*.module.ts, src/modules/*/*.controller.ts, src/modules/*/*.service.ts
+
+---
+id: pns-server-workflow-database-schema-and-dto-alignment
+trigger: "when doing database schema and dto alignment"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Workflow Database Schema And Dto Alignment
+
+## Action
+
+Follow the database-schema-and-dto-alignment workflow:
+1. Update src/db/schema.ts for schema changes
+2. Update related DTOs in src/modules/*/dto/
+3. Update affected service logic in src/modules/*/*.service.ts
+4. Update seed or migration scripts if necessary
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: src/db/schema.ts, src/db/seed*.ts, src/modules/*/dto/*.ts
+
+---
+id: pns-server-workflow-feature-implementation-with-tests
+trigger: "when doing feature implementation with tests"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Workflow Feature Implementation With Tests
+
+## Action
+
+Follow the feature-implementation-with-tests workflow:
+1. Implement feature logic in controller, service, and DTOs
+2. Add or update test files in test/
+3. Update test utilities or configs if needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/modules/*/*.controller.ts, src/modules/*/*.service.ts, src/modules/*/dto/*.ts
+
+---
+id: pns-server-workflow-role-based-access-control-and-auth-updates
+trigger: "when doing role based access control and auth updates"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Workflow Role Based Access Control And Auth Updates
+
+## Action
+
+Follow the role-based-access-control-and-auth-updates workflow:
+1. Update or add guards and decorators in src/modules/auth/guards/ and src/modules/auth/decorators/
+2. Update controller files to use guards/decorators
+3. Update auth service or module as needed
+4. Update .env.example if config changes
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/modules/auth/guards/*.ts, src/modules/auth/decorators/*.ts, src/modules/auth/auth.service.ts
+
+---
+id: pns-server-workflow-refactor-enum-or-field-across-schema-dto-service
+trigger: "when doing refactor enum or field across schema dto service"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/mamuncloud/pns-server
+---
+
+# Pns Server Workflow Refactor Enum Or Field Across Schema Dto Service
+
+## Action
+
+Follow the refactor-enum-or-field-across-schema-dto-service workflow:
+1. Update enum or field in src/db/schema.ts
+2. Update all affected DTOs in src/modules/*/dto/
+3. Update service logic in src/modules/*/*.service.ts
+4. Update seed data if necessary
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/db/schema.ts, src/db/seed*.ts, src/modules/*/dto/*.ts
+
+---
+id: pns-server-instinct-file-naming
+trigger: "When creating a new file"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct File Naming
+
+## Action
+
+Name the file using camelCase (e.g., productService.ts)
+
+## Evidence
+
+- Pattern in src/modules/*/*.ts
+- Naming conventions in codeStyle
+
+---
+id: pns-server-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Function Naming
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Pattern in src/modules/*/*.ts
+- Naming conventions in codeStyle
+
+---
+id: pns-server-instinct-class-naming
+trigger: "When creating a new class"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Class Naming
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Pattern in src/modules/*/*.ts
+- Naming conventions in codeStyle
+
+---
+id: pns-server-instinct-constant-naming
+trigger: "When declaring a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in src/modules/*/*.ts
+- Naming conventions in codeStyle
+
+---
+id: pns-server-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Import Style
+
+## Action
+
+Use absolute import paths
+
+## Evidence
+
+- Pattern in src/modules/*/*.ts
+- importStyle in codeStyle
+
+---
+id: pns-server-instinct-export-style
+trigger: "When exporting modules or functions"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in src/modules/*/*.ts
+- exportStyle in codeStyle
+
+---
+id: pns-server-instinct-test-file-pattern
+trigger: "When writing a test file"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Test File Pattern
+
+## Action
+
+Name the file with a .spec.ts suffix
+
+## Evidence
+
+- Pattern in test/*.spec.ts
+- testing.filePattern
+
+---
+id: pns-server-instinct-test-framework
+trigger: "When writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Test Framework
+
+## Action
+
+Use Jest as the testing framework
+
+## Evidence
+
+- Pattern in test/*.spec.ts
+- testing.framework
+
+---
+id: pns-server-instinct-mocking
+trigger: "When mocking dependencies in tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Mocking
+
+## Action
+
+Use jest.mock for mocking
+
+## Evidence
+
+- Pattern in test/*.spec.ts
+- testing.mockingStyle
+
+---
+id: pns-server-instinct-test-types
+trigger: "When implementing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Test Types
+
+## Action
+
+Write both unit and e2e tests as appropriate
+
+## Evidence
+
+- Pattern in test/*.spec.ts
+- testing.testTypes
+
+---
+id: pns-server-instinct-commit-format
+trigger: "When making a git commit"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Commit Format
+
+## Action
+
+Use conventional commit prefixes: feat, fix, refactor, docs, chore
+
+## Evidence
+
+- feat(auth): add WhatsApp magic link and db:studio script
+- fix(api): correct productId column name in stock filtering query
+- docs(config): update README.md to reflect NestJS architecture
+- chore: enforce zero-warning linting policy in CI/CD and remove unused stock calculations
+
+---
+id: pns-server-instinct-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Commit Length
+
+## Action
+
+Keep the commit message around 79 characters on average
+
+## Evidence
+
+- commits.averageLength: 79
+
+---
+id: pns-server-instinct-add-or-update-api-endpoint
+trigger: "When someone wants to add or update an API endpoint for a resource"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Add Or Update Api Endpoint
+
+## Action
+
+Create or update controller, service, and DTO files as needed in src/modules/[module]/, and update module file if new provider/controller is added
+
+## Evidence
+
+- Workflow: add-or-update-api-endpoint
+- Files: src/modules/*/*.controller.ts, src/modules/*/*.service.ts, src/modules/*/dto/*.ts
+- Example commits: feat(api): implement stock filtering and pagination in products service
+
+---
+id: pns-server-instinct-add-new-feature-module
+trigger: "When someone wants to introduce a new business domain or feature area"
+confidence: 0.92
+domain: workflow
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Add New Feature Module
+
+## Action
+
+Create module, controller, service, DTOs, register in app.module.ts, update schema if needed, and add tests
+
+## Evidence
+
+- Workflow: add-new-feature-module
+- Files: src/modules/*/*.module.ts, src/modules/*/*.controller.ts, src/modules/*/*.service.ts, src/modules/*/dto/*.ts, src/app.module.ts, src/db/schema.ts, test/*.ts
+
+---
+id: pns-server-instinct-database-schema-and-dto-alignment
+trigger: "When someone wants to add or change a database field, enum, or table"
+confidence: 0.93
+domain: workflow
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Database Schema And Dto Alignment
+
+## Action
+
+Update schema, related DTOs, service logic, and seed/migration scripts as needed
+
+## Evidence
+
+- Workflow: database-schema-and-dto-alignment
+- Files: src/db/schema.ts, src/db/seed*.ts, src/modules/*/dto/*.ts, src/modules/*/*.service.ts
+
+---
+id: pns-server-instinct-feature-implementation-with-tests
+trigger: "When someone wants to ensure new features are covered by automated tests"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Feature Implementation With Tests
+
+## Action
+
+Implement feature logic in controller, service, DTOs, and add/update test files and utilities
+
+## Evidence
+
+- Workflow: feature-implementation-with-tests
+- Files: src/modules/*/*.controller.ts, src/modules/*/*.service.ts, src/modules/*/dto/*.ts, test/*.ts, test/*.json
+
+---
+id: pns-server-instinct-role-based-access-control-and-auth-updates
+trigger: "When someone wants to secure endpoints or update authentication/authorization logic"
+confidence: 0.87
+domain: workflow
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Role Based Access Control And Auth Updates
+
+## Action
+
+Update or add guards/decorators, update controllers to use them, update auth service/module, and .env.example if config changes
+
+## Evidence
+
+- Workflow: role-based-access-control-and-auth-updates
+- Files: src/modules/auth/guards/*.ts, src/modules/auth/decorators/*.ts, src/modules/auth/auth.service.ts, src/modules/auth/auth.module.ts, src/modules/*/*.controller.ts, .env.example
+
+---
+id: pns-server-instinct-refactor-enum-or-field-across-schema-dto-service
+trigger: "When someone wants to rename or refactor a field or enum used in multiple layers"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: mamuncloud/pns-server
+---
+
+# Pns Server Instinct Refactor Enum Or Field Across Schema Dto Service
+
+## Action
+
+Update enum or field in schema, all affected DTOs, service logic, and seed data if necessary
+
+## Evidence
+
+- Workflow: refactor-enum-or-field-across-schema-dto-service
+- Files: src/db/schema.ts, src/db/seed*.ts, src/modules/*/dto/*.ts, src/modules/*/*.service.ts
+
