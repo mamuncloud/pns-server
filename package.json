@@ -16,6 +16,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:pull": "drizzle-kit pull",
+    "db:push": "drizzle-kit push",
     "db:studio": "bunx drizzle-kit studio --verbose",
     "db:seed": "bun run src/db/seed.ts",
     "db:seed:employees": "bun run src/db/seed-employees.ts",
