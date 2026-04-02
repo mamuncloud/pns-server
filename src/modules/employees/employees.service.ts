@@ -25,9 +25,20 @@ export class EmployeesService {
       throw new ConflictException('Email sudah terdaftar');
     }
 
+    if (createEmployeeDto.phone) {
+      const existingPhone = await this.db.query.employees.findFirst({
+        where: eq(schema.employees.phone, createEmployeeDto.phone),
+      });
+
+      if (existingPhone) {
+        throw new ConflictException('Nomor WhatsApp sudah terdaftar');
+      }
+    }
+
     const [newEmployee] = await this.db.insert(schema.employees).values({
       name: createEmployeeDto.name,
       email: createEmployeeDto.email,
+      phone: createEmployeeDto.phone,
       role: createEmployeeDto.role,
     }).returning();
 
@@ -72,6 +83,17 @@ export class EmployeesService {
 
       if (existingEmail) {
         throw new ConflictException('Email sudah terdaftar untuk pengguna lain');
+      }
+    }
+
+    // If changing phone, ensure it doesn't conflict
+    if (updateEmployeeDto.phone && updateEmployeeDto.phone !== employee.phone) {
+      const existingPhone = await this.db.query.employees.findFirst({
+        where: eq(schema.employees.phone, updateEmployeeDto.phone),
+      });
+
+      if (existingPhone) {
+        throw new ConflictException('Nomor WhatsApp sudah terdaftar untuk pengguna lain');
       }
     }
 

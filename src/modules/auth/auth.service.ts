@@ -4,6 +4,7 @@ import { DRIZZLE_DB } from '../../common/database/database.module';
 import { MailsService } from '../mails/mails.service';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { eq, and, gt } from 'drizzle-orm';
 import * as crypto from 'crypto';
 
@@ -16,6 +17,7 @@ export class AuthService {
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
     private readonly mailsService: MailsService,
+    private readonly whatsappService: WhatsAppService,
   ) {}
 
   async requestLogin(email: string) {
@@ -54,8 +56,17 @@ export class AuthService {
     
     const userName = employee?.name || user?.name || 'User';
     await this.mailsService.sendMagicLink(email, magicLink, userName);
+
+    // 6. Send via WhatsApp if available
+    const phone = employee?.phone || user?.phone;
+    if (phone) {
+      // Fire & Forget WhatsApp message to avoid delaying the response
+      this.whatsappService.sendMagicLink(phone, magicLink, userName).catch((err) => {
+        this.logger.error(`Error in fire-and-forget WhatsApp send: ${err.message}`);
+      });
+    }
     
-    return { message: 'If you are registered, a login link will be sent to your email.' };
+    return { message: 'If you are registered, a login link will be sent to your email and WhatsApp.' };
   }
 
   async verifyLogin(token: string) {

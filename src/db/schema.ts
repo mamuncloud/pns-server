@@ -64,6 +64,7 @@ export const users = pgTable("users", {
 export const employees = pgTable("employees", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   email: varchar("email", { length: 255 }).unique().notNull(),
+  phone: varchar("phone", { length: 16 }).unique(),
   name: varchar("name", { length: 255 }).notNull(),
   role: employeeRoleEnum("role").notNull().default("CASHIER"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
