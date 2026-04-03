@@ -79,6 +79,8 @@ export const employees = pgTable("employees", {
     .$onUpdate(() => new Date()),
 });
 
+export const authChannelEnum = pgEnum("AuthChannel", ["email", "phone"]);
+
 export const authTokens = pgTable("auth_tokens", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   employeeId: varchar("employeeId", { length: 255 })
@@ -86,6 +88,7 @@ export const authTokens = pgTable("auth_tokens", {
   userId: varchar("userId", { length: 255 })
     .references(() => users.id, { onDelete: "cascade" }),
   token: varchar("token", { length: 255 }).unique().notNull(),
+  channel: authChannelEnum("channel"),
   expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
