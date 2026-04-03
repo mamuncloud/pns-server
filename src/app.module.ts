@@ -14,6 +14,8 @@ import { StoreSettingsModule } from 'src/modules/store-settings/store-settings.m
 import { RepacksModule } from 'src/modules/repacks/repacks.module';
 import { StockModule } from 'src/modules/stock/stock.module';
 import { EmployeesModule } from 'src/modules/employees/employees.module';
+import { FinanceModule } from 'src/modules/finance/finance.module';
+import { ExpensesModule } from 'src/modules/expenses/expenses.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { EmployeesModule } from 'src/modules/employees/employees.module';
     StoreSettingsModule,
     RepacksModule,
     EmployeesModule,
+    FinanceModule,
+    ExpensesModule,
   ],
 })
 export class AppModule {}

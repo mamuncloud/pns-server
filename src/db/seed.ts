@@ -13,13 +13,24 @@ async function seed() {
   console.log('🌱 Seeding database...');
 
   try {
-    // Clear existing data in correct order
-    console.log('🧹 Cleaning existing data...');
-    await db.delete(schema.orderItems);
+    await db.delete(schema.orderItems); 
+    await db.delete(schema.repacks);
+    await db.delete(schema.purchaseItems);
+    await db.delete(schema.stockMovements);
+    await db.delete(schema.expenses);
+    await db.delete(schema.financialTransactions);
+    await db.delete(schema.pricingRules);
+    await db.delete(schema.orders);
+    await db.delete(schema.purchases);
     await db.delete(schema.productVariants);
     await db.delete(schema.products);
+    await db.delete(schema.expenseCategories);
+    await db.delete(schema.users);
+    await db.delete(schema.brands);
+    await db.delete(schema.suppliers);
+    await db.delete(schema.storeSettings);
 
-    const tastes = ['Pedas', 'Gurih', 'Manis'];
+    const tastes = ['PEDAS', 'GURIH', 'MANIS'];
     const labels = ['Medium', 'Small', '250gr', '500gr', '1kg', 'bal'];
     const snackNames = [
       'Keripik Kaca', 'Makaroni Ngocor', 'Basreng Gila', 'Usus Pedas', 'Cireng Krispi',
@@ -77,6 +88,23 @@ async function seed() {
 
     await db.insert(schema.productVariants).values(variantsToInsert);
     console.log(`✅ Inserted ${variantsToInsert.length} product variants.`);
+
+    console.log('💰 Seeding expense categories...');
+    const expenseCategories = [
+      { name: 'Listrik & Air', description: 'Biaya utilitas bulanan' },
+      { name: 'Sewa Bangunan', description: 'Biaya sewa toko' },
+      { name: 'Gaji Karyawan', description: 'Pembayaran upah staf' },
+      { name: 'Perlengkapan Toko', description: 'ATK, pembersih, dll' },
+      { name: 'Logistik', description: 'Biaya pengiriman dan transportasi' },
+      { name: 'Pemasaran', description: 'Iklan dan promosi' },
+      { name: 'Lain-lain', description: 'Biaya tidak terduga lainnya' },
+    ];
+
+    await db.insert(schema.expenseCategories).values(expenseCategories.map(cat => ({
+      id: crypto.randomUUID(),
+      ...cat
+    })));
+    console.log(`✅ Inserted ${expenseCategories.length} expense categories.`);
 
     console.log('✨ Seeding completed successfully!');
   } catch (error) {
