@@ -14,7 +14,6 @@ import { StoreSettingsModule } from 'src/modules/store-settings/store-settings.m
 import { RepacksModule } from 'src/modules/repacks/repacks.module';
 import { StockModule } from 'src/modules/stock/stock.module';
 import { EmployeesModule } from 'src/modules/employees/employees.module';
-import { ConsignmentModule } from 'src/modules/consignment/consignment.module';
 
 @Module({
   imports: [
@@ -35,7 +34,6 @@ import { ConsignmentModule } from 'src/modules/consignment/consignment.module';
     StoreSettingsModule,
     RepacksModule,
     EmployeesModule,
-    ConsignmentModule,
   ],
 })
 export class AppModule {}
