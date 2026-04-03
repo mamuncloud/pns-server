@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException, Logger, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  Logger,
+  Inject,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { MailsService } from '../mails/mails.service';
@@ -21,7 +27,16 @@ export class AuthService {
   ) {}
 
   async requestLogin(identifier: string) {
-    // 1. Check if employee exists by email or phone
+    const isEmail = identifier.includes('@');
+    const isPhone = /^[0-9+\-\s()]+$/.test(identifier);
+    const channel = isEmail ? 'email' : isPhone ? 'phone' : null;
+
+    if (!channel) {
+      throw new BadRequestException(
+        'Invalid identifier. Please provide a valid email or phone number.',
+      );
+    }
+
     const employee = await this.db.query.employees.findFirst({
       where: or(
         eq(schema.employees.email, identifier.toLowerCase()),
@@ -29,66 +44,61 @@ export class AuthService {
       ),
     });
 
-    // 2. Check if user exists (consumer) by email or phone
-    const user = !employee ? await this.db.query.users.findFirst({
-      where: or(
-        eq(schema.users.email, identifier.toLowerCase()),
-        eq(schema.users.phone, identifier),
-      ),
-    }) : null;
+    const user = !employee
+      ? await this.db.query.users.findFirst({
+          where: or(
+            eq(schema.users.email, identifier.toLowerCase()),
+            eq(schema.users.phone, identifier),
+          ),
+        })
+      : null;
 
     if (!employee && !user) {
-      // For security reasons, don't reveal if the record exists
       this.logger.warn(`Login attempt for non-existent identifier: ${identifier}`);
-      return { message: 'If you are registered, a login link will be sent to your email and WhatsApp.' };
+      return { message: 'If you are registered, a login link will be sent.' };
     }
 
-    // 3. Generate token
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 15); // 15 minutes expiry
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
-    // 4. Store token
     await this.db.insert(schema.authTokens).values({
       employeeId: employee?.id || null,
       userId: user?.id || null,
       token,
+      channel,
       expiresAt,
     });
 
-    // 5. Send real email
     const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const magicLink = `${frontendUrl}/staff/verify?token=${token}`;
-    
     const userName = employee?.name || user?.name || 'User';
-    const deliveryEmail = employee?.email || user?.email;
-    if (deliveryEmail) {
-      await this.mailsService.sendMagicLink(deliveryEmail, magicLink, userName);
+
+    if (channel === 'email') {
+      const deliveryEmail = employee?.email || user?.email;
+      if (deliveryEmail) {
+        await this.mailsService.sendMagicLink(deliveryEmail, magicLink, userName);
+      }
+    } else if (channel === 'phone') {
+      const phone = employee?.phone || user?.phone;
+      if (phone) {
+        this.whatsappService.sendMagicLink(phone, magicLink, userName).catch((err) => {
+          this.logger.error(`Error sending WhatsApp magic link: ${err.message}`);
+        });
+      }
     }
 
-    // 6. Send via WhatsApp if available
-    const phone = employee?.phone || user?.phone;
-    if (phone) {
-      // Fire & Forget WhatsApp message to avoid delaying the response
-      this.whatsappService.sendMagicLink(phone, magicLink, userName).catch((err) => {
-        this.logger.error(`Error in fire-and-forget WhatsApp send: ${err.message}`);
-      });
-    }
-    
-    return { message: 'If you are registered, a login link will be sent to your email and WhatsApp.' };
+    return { message: 'If you are registered, a login link will be sent.' };
   }
 
   async verifyLogin(token: string) {
     // 1. Find token
     const storedToken = await this.db.query.authTokens.findFirst({
-      where: and(
-        eq(schema.authTokens.token, token),
-        gt(schema.authTokens.expiresAt, new Date()),
-      ),
+      where: and(eq(schema.authTokens.token, token), gt(schema.authTokens.expiresAt, new Date())),
       with: {
         employee: true,
         user: true,
-      }
+      },
     });
 
     if (!storedToken) {
@@ -96,7 +106,13 @@ export class AuthService {
     }
 
     // 2. Determine entity
-    let entity: { id: string; email: string | null; name: string | null; role: string; type: 'EMPLOYEE' | 'USER' } | null = null;
+    let entity: {
+      id: string;
+      email: string | null;
+      name: string | null;
+      role: string;
+      type: 'EMPLOYEE' | 'USER';
+    } | null = null;
 
     if (storedToken.employee) {
       entity = {
@@ -164,7 +180,7 @@ export class AuthService {
       with: {
         employee: true,
         user: true,
-      }
+      },
     });
 
     if (!storedToken) {
@@ -172,7 +188,13 @@ export class AuthService {
     }
 
     // 2. Determine entity
-    let entity: { id: string; email: string | null; name: string | null; role: string; type: 'EMPLOYEE' | 'USER' } | null = null;
+    let entity: {
+      id: string;
+      email: string | null;
+      name: string | null;
+      role: string;
+      type: 'EMPLOYEE' | 'USER';
+    } | null = null;
 
     if (storedToken.employee) {
       entity = {
@@ -202,11 +224,12 @@ export class AuthService {
     newExpiresAt.setDate(newExpiresAt.getDate() + 7);
 
     // Update the existing refresh token with a new value and expiry
-    await this.db.update(schema.refreshTokens)
-      .set({ 
-        token: newRefreshToken, 
+    await this.db
+      .update(schema.refreshTokens)
+      .set({
+        token: newRefreshToken,
         expiresAt: newExpiresAt,
-        createdAt: new Date() 
+        createdAt: new Date(),
       })
       .where(eq(schema.refreshTokens.id, storedToken.id));
 
