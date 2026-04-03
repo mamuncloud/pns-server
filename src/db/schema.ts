@@ -42,6 +42,16 @@ export const stockMovementTypeEnum = pgEnum("StockMovementType", [
 
 export const paymentMethodEnum = pgEnum("PaymentMethod", ["CASH", "QRIS"]);
 
+export const transactionTypeEnum = pgEnum("TransactionType", ["INCOME", "EXPENSE"]);
+
+export const transactionCategoryEnum = pgEnum("TransactionCategory", [
+  "SALES",
+  "STOCK_PURCHASE",
+  "OPERATIONAL_EXPENSE",
+  "CAPITAL_INJECTION",
+  "ADJUSTMENT",
+]);
+
 // Tables
 export const users = pgTable("users", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -325,6 +335,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const employeesRelations = relations(employees, ({ many }) => ({
   authTokens: many(authTokens),
   refreshTokens: many(refreshTokens),
+  expenses: many(expenses),
+  financialTransactions: many(financialTransactions),
 }));
 
 export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
@@ -474,3 +486,70 @@ export const stockMovementsRelations = relations(stockMovements, ({ one }) => ({
   }),
 }));
 
+
+export const expenseCategories = pgTable("expense_categories", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const expenses = pgTable("expenses", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  categoryId: varchar("categoryId", { length: 255 })
+    .references(() => expenseCategories.id)
+    .notNull(),
+  amount: integer("amount").notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  description: text("description"),
+  receiptUrl: text("receiptUrl"),
+  employeeId: varchar("employeeId", { length: 255 }).references(() => employees.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const financialTransactions = pgTable("financial_transactions", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  type: transactionTypeEnum("type").notNull(),
+  category: transactionCategoryEnum("category").notNull(),
+  amount: integer("amount").notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  description: text("description"),
+  paymentMethod: paymentMethodEnum("paymentMethod").default("CASH").notNull(),
+  referenceId: varchar("referenceId", { length: 255 }), // Can be Order ID, Purchase ID, or Expense ID
+  employeeId: varchar("employeeId", { length: 255 }).references(() => employees.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const expenseCategoriesRelations = relations(expenseCategories, ({ many }) => ({
+  expenses: many(expenses),
+}));
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  category: one(expenseCategories, {
+    fields: [expenses.categoryId],
+    references: [expenseCategories.id],
+  }),
+  employee: one(employees, {
+    fields: [expenses.employeeId],
+    references: [employees.id],
+  }),
+}));
+
+export const financialTransactionsRelations = relations(financialTransactions, ({ one }) => ({
+  employee: one(employees, {
+    fields: [financialTransactions.employeeId],
+    references: [employees.id],
+  }),
+}));

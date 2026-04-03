@@ -5,6 +5,7 @@ import * as schema from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { StockService } from '../stock/stock.service';
+import { FinanceService } from '../finance/finance.service';
 
 @Injectable()
 export class OrdersService {
@@ -12,6 +13,7 @@ export class OrdersService {
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
     private readonly stockService: StockService,
+    private readonly financeService: FinanceService,
   ) {}
 
   async create(dto: CreateOrderDto) {
@@ -62,6 +64,19 @@ export class OrdersService {
           referenceId: order.id,
           note: `Penjualan`,
         });
+      }
+
+      // 5. Record financial transaction if PAID
+      if (status === 'PAID') {
+        await this.financeService.recordTransaction({
+          type: 'INCOME',
+          category: 'SALES',
+          amount: totalAmount,
+          description: `Penjualan Pesanan #${order.id.slice(-6)}`,
+          paymentMethod: (dto.paymentMethod || 'CASH') as any,
+          referenceId: order.id,
+          employeeId: dto.userId, // Assuming userId is the employee who made the sale
+        }, tx);
       }
 
       return {

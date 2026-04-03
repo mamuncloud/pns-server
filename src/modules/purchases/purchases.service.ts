@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
 import { StockService } from '../stock/stock.service';
+import { FinanceService } from '../finance/finance.service';
 
 @Injectable()
 export class PurchasesService {
@@ -13,6 +14,7 @@ export class PurchasesService {
     @Inject(DRIZZLE_DB)
     private readonly db: NodePgDatabase<typeof schema>,
     private readonly stockService: StockService,
+    private readonly financeService: FinanceService,
   ) {}
 
 
@@ -63,6 +65,18 @@ export class PurchasesService {
             unitCost,
           });
         }
+      }
+
+      // 4. Record financial transaction if COMPLETED
+      if (dto.status === 'COMPLETED') {
+        await this.financeService.recordTransaction({
+          type: 'EXPENSE',
+          category: 'STOCK_PURCHASE',
+          amount: totalAmount,
+          description: `Pembelian Stok dari Supplier ${dto.supplierId}`,
+          paymentMethod: 'CASH', // Default for now
+          referenceId: purchase.id,
+        }, tx);
       }
 
       return {
@@ -228,6 +242,22 @@ export class PurchasesService {
             await this.syncProductVariantFromPurchaseItem(tx, id, item);
           }
         }
+      }
+
+      // Record financial transaction if changing from DRAFT to COMPLETED
+      if (!wasCompleted && willBeCompleted) {
+        const totalAmount = dto.items && dto.items.length > 0
+          ? dto.items.reduce((acc, item) => acc + item.totalCost + item.extraCosts, 0)
+          : existingPurchase.totalAmount;
+
+        await this.financeService.recordTransaction({
+          type: 'EXPENSE',
+          category: 'STOCK_PURCHASE',
+          amount: totalAmount,
+          description: `Pembelian Stok dari Supplier ${existingPurchase.supplierId}`,
+          paymentMethod: 'CASH',
+          referenceId: id,
+        }, tx);
       }
 
       return {
