@@ -4,6 +4,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { CreateRepackDto } from './dto/create-repack.dto';
+import { getNextSkuFromDb } from '../../lib/sku-generator.util';
 import { StockService } from '../stock/stock.service';
 
 @Injectable()
@@ -89,7 +90,7 @@ export class RepacksService {
         });
 
         if (!targetVariant) {
-          // Auto-create variant if it doesn't exist
+          const sku = await getNextSkuFromDb(tx);
           const [newVariant] = await tx
             .insert(schema.productVariants)
             .values({
@@ -97,7 +98,8 @@ export class RepacksService {
               package: item.targetVariantPackage as any,
               price: item.sellingPrice,
               hpp: unitHpp,
-              stock: 0, // Will be updated by StockService
+              stock: 0,
+              sku,
               sizeInGram: item.sizeInGram,
             })
             .returning();

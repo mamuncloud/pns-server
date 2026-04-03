@@ -5,6 +5,7 @@ import * as schema from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
+import { getNextSkuFromDb } from '../../lib/sku-generator.util';
 import { StockService } from '../stock/stock.service';
 import { FinanceService } from '../finance/finance.service';
 
@@ -331,7 +332,7 @@ export class PurchasesService {
           note: `Pembelian disinkronkan`,
         });
       } else {
-        // Auto-create variant if it doesn't exist
+        const sku = await getNextSkuFromDb(tx);
         const [newVariant] = await tx
           .insert(schema.productVariants)
           .values({
@@ -341,6 +342,7 @@ export class PurchasesService {
             hpp: Math.round(unitCost),
             sizeInGram: item.sizeInGram,
             stock: 0,
+            sku,
             expiredDate: item.expiredDate ? new Date(item.expiredDate) : null,
           })
           .returning();

@@ -2,11 +2,11 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
-import { eq, sql, like, desc } from 'drizzle-orm';
+import { eq, sql, like } from 'drizzle-orm';
 import { ConfigService } from '@nestjs/config';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { generateNextSku } from '../../lib/sku-generator.util';
+import { getNextSkuFromDb } from '../../lib/sku-generator.util';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { and, inArray } from 'drizzle-orm';
 
@@ -187,16 +187,19 @@ export class ProductsService {
 
       // 3. Insert variants if provided
       if (dto.variants && dto.variants.length > 0) {
-        await tx.insert(schema.productVariants).values(
-          dto.variants.map((v) => ({
+        const variantValues = [];
+        for (const v of dto.variants) {
+          const sku = v.sku || await getNextSkuFromDb(tx);
+          variantValues.push({
             productId: product.id,
             package: v.package,
             price: v.price,
             stock: v.initialStock ?? 0,
-            sku: v.sku,
+            sku,
             sizeInGram: v.sizeInGram,
-          })),
-        );
+          });
+        }
+        await tx.insert(schema.productVariants).values(variantValues);
       }
 
       return this.findOne(product.id);
@@ -303,12 +306,7 @@ export class ProductsService {
         throw new NotFoundException(`Produk dengan ID ${productId} tidak ditemukan`);
       }
 
-      const lastVariant = await tx.query.productVariants.findFirst({
-        where: eq(schema.productVariants.productId, productId),
-        orderBy: [desc(schema.productVariants.createdAt)],
-      });
-
-      const sku = dto.sku || generateNextSku(lastVariant?.sku || null);
+      const sku = dto.sku || await getNextSkuFromDb(tx);
 
       const [variant] = await tx
         .insert(schema.productVariants)
