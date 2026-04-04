@@ -51,7 +51,6 @@ export class OrdersService {
         await tx.insert(schema.orderItems).values({
           orderId: order.id,
           productVariantId: item.productVariantId,
-          pricingRuleId: item.pricingRuleId,
           quantity: item.quantity,
           price: item.price,
         });

@@ -64,48 +64,14 @@ export class CreateProductImageDto {
   isPrimary?: boolean;
 }
 
-export enum PricingType {
-  WEIGHT = 'WEIGHT',
-  FIXED_PRICE = 'FIXED_PRICE',
-  BULK = 'BULK',
-}
-
 export enum ProductTaste {
   GURIH = 'GURIH',
   PEDAS = 'PEDAS',
   MANIS = 'MANIS',
 }
 
-export class CreateProductPricingRuleDto {
-  @ApiProperty({ enum: PricingType })
-  @IsEnum(PricingType)
-  type: PricingType;
-
-  @ApiPropertyOptional({ example: 100 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  weightGram?: number;
-
-  @ApiPropertyOptional({ example: 10000 })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  targetPrice?: number;
-
-  @ApiProperty({ example: 20 })
-  @IsInt()
-  @Min(0)
-  marginPct: number;
-
-  @ApiPropertyOptional({ example: 100 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  rounding?: number;
-}
-
 export class CreateProductDto {
+
   @ApiProperty({ example: 'Product Name' })
   @IsString()
   @IsNotEmpty()

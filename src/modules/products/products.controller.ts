@@ -6,7 +6,6 @@ import { CreateBrandDto } from './dto/create-brand.dto';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
-import { PricingRulesService } from './pricing-rules.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -16,7 +15,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class ProductsController {
   constructor(
     private readonly productsService: ProductsService,
-    private readonly pricingRulesService: PricingRulesService,
   ) {}
 
   @Get('brands')
@@ -84,21 +82,6 @@ export class ProductsController {
     };
   }
 
-  @Get(':id/pricing')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ANY_EMPLOYEE')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get pricing rules for a product' })
-  @ApiParam({ name: 'id', description: 'Unique identifier of the product' })
-  @ApiResponse({ status: 200, description: 'Pricing rules retrieved successfully' })
-  async getPricing(@Param('id') id: string) {
-    const result = await this.pricingRulesService.findByProductId(id);
-    return {
-      message: 'Berhasil mengambil aturan harga produk',
-      data: result,
-    };
-  }
-
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('MANAGER')
@@ -146,3 +129,4 @@ export class ProductsController {
     };
   }
 }
+

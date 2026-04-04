@@ -26,11 +26,6 @@ class CreateOrderItemDto {
   @IsInt()
   @Min(0)
   price: number;
-
-  @ApiProperty({ example: 'uuid-rule-456', required: false })
-  @IsOptional()
-  @IsUUID()
-  pricingRuleId?: string;
 }
 
 export class CreateOrderDto {
