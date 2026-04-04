@@ -61,7 +61,6 @@ export class ProductsService {
       with: {
         variants: true,
         brand: true,
-        pricingRules: true,
         images: true,
       },
       orderBy: (products, { desc }) => [desc(products.createdAt)],
@@ -119,7 +118,6 @@ export class ProductsService {
       with: {
         variants: true,
         brand: true,
-        pricingRules: true,
         images: true,
       },
     });

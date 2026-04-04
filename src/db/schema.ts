@@ -14,8 +14,6 @@ export const orderStatusEnum = pgEnum("OrderStatus", [
 
 export const employeeRoleEnum = pgEnum("EmployeeRole", ["MANAGER", "CASHIER"]);
 
-export const pricingTypeEnum = pgEnum("PricingType", ["WEIGHT", "FIXED_PRICE", "BULK"]);
-
 export const productTasteEnum = pgEnum("ProductTaste", ["GURIH", "PEDAS", "MANIS"]);
 
 export const productVariantLabelEnum = pgEnum("ProductVariantLabel", [
@@ -150,23 +148,6 @@ export const productVariants = pgTable("product_variants", {
     .$onUpdate(() => new Date()),
 });
 
-export const pricingRules = pgTable("pricing_rules", {
-  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
-  productId: varchar("productId", { length: 255 })
-    .references(() => products.id, { onDelete: "cascade" })
-    .notNull(),
-  type: pricingTypeEnum("type").notNull(),
-  weightGram: integer("weightGram"),
-  targetPrice: integer("targetPrice"),
-  marginPct: integer("marginPct").notNull(),
-  rounding: integer("rounding").default(100).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt")
-    .defaultNow()
-    .notNull()
-    .$onUpdate(() => new Date()),
-});
-
 export const orders = pgTable("orders", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: varchar("userId", { length: 255 }).references(() => users.id),
@@ -192,8 +173,6 @@ export const orderItems = pgTable("order_items", {
   productVariantId: varchar("productVariantId", { length: 255 })
     .references(() => productVariants.id)
     .notNull(),
-  pricingRuleId: varchar("pricingRuleId", { length: 255 })
-    .references(() => pricingRules.id),
   quantity: integer("quantity").notNull(),
   price: integer("price").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -370,7 +349,6 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     references: [brands.id],
   }),
   variants: many(productVariants),
-  pricingRules: many(pricingRules),
   images: many(productImages),
   repacks: many(repacks),
 }));
@@ -385,15 +363,6 @@ export const productImagesRelations = relations(productImages, ({ one }) => ({
 export const brandsRelations = relations(brands, ({ many }) => ({
   products: many(products),
 }));
-
-export const pricingRulesRelations = relations(pricingRules, ({ one, many }) => ({
-  product: one(products, {
-    fields: [pricingRules.productId],
-    references: [products.id],
-  }),
-  orderItems: many(orderItems),
-}));
-
 
 export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
   product: one(products, {
@@ -422,10 +391,6 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   productVariant: one(productVariants, {
     fields: [orderItems.productVariantId],
     references: [productVariants.id],
-  }),
-  pricingRule: one(pricingRules, {
-    fields: [orderItems.pricingRuleId],
-    references: [pricingRules.id],
   }),
 }));
 
