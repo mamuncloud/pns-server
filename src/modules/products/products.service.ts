@@ -39,7 +39,16 @@ export class ProductsService {
   async findAll(page: number = 1, limit: number = 10, taste?: string, search?: string, hasStock?: boolean) {
     const offset = (page - 1) * limit;
 
-    let where = taste ? sql`${schema.products.taste} @> ARRAY[${taste}]::"ProductTaste"[]` : undefined;
+    let where = undefined;
+
+    if (taste) {
+      const upperTaste = taste.toUpperCase();
+      const validTastes = schema.productTasteEnum.enumValues;
+      
+      if (validTastes.includes(upperTaste as any)) {
+        where = sql`${schema.products.taste} @> ARRAY[${upperTaste}]::"ProductTaste"[]`;
+      }
+    }
 
     if (search) {
       const searchWhere = like(schema.products.name, `%${search}%`);
