@@ -52,6 +52,25 @@ export class PaginationQueryDto {
   @IsOptional()
   @Type(() => Boolean)
   hasStock?: boolean;
+
+  @ApiProperty({
+    description: 'Sort by field',
+    required: false,
+    example: 'stock',
+  })
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @ApiProperty({
+    description: 'Sort order',
+    required: false,
+    example: 'desc',
+    enum: ['asc', 'desc'],
+  })
+  @IsOptional()
+  @IsString()
+  sortOrder?: 'asc' | 'desc';
 }
 
 class PaginationMetaDto {
