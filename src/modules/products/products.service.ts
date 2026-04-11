@@ -36,7 +36,7 @@ export class ProductsService {
     return `${this.storageUrl}/${imageUrl}`;
   }
 
-  async findAll(page: number = 1, limit: number = 10, taste?: string, search?: string, hasStock?: boolean) {
+  async findAll(page: number = 1, limit: number = 10, taste?: string, search?: string, hasStock?: boolean, sortBy?: string, sortOrder: 'asc' | 'desc' = 'desc') {
     const offset = (page - 1) * limit;
 
     let where = undefined;
@@ -63,6 +63,14 @@ export class ProductsService {
       where = where ? and(where, stockExist) : stockExist;
     }
 
+    let orderByList: any[] = [];
+    if (sortBy === 'stock') {
+      const stockQuery = sql`(SELECT COALESCE(SUM(v.stock), 0) FROM ${schema.productVariants} v WHERE v."productId" = ${schema.products.id})`;
+      orderByList.push(sortOrder === 'asc' ? sql`${stockQuery} ASC` : sql`${stockQuery} DESC`);
+    } else {
+      orderByList.push(sortOrder === 'asc' ? sql`${schema.products.createdAt} ASC` : sql`${schema.products.createdAt} DESC`);
+    }
+
     const rawData = await this.db.query.products.findMany({
       limit,
       offset,
@@ -72,7 +80,7 @@ export class ProductsService {
         brand: true,
         images: true,
       },
-      orderBy: (products, { desc }) => [desc(products.createdAt)],
+      orderBy: orderByList,
     });
 
 

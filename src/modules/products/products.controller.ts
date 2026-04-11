@@ -51,8 +51,8 @@ export class ProductsController {
   @ApiQuery({ name: 'search', required: false, description: 'Search products by name' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully', type: AllProductsResponseDto })
   async findAll(@Query() query: PaginationQueryDto) {
-    const { page, limit, taste, search, hasStock } = query;
-    const { data, totalItems } = await this.productsService.findAll(page, limit, taste, search, hasStock);
+    const { page, limit, taste, search, hasStock, sortBy, sortOrder } = query;
+    const { data, totalItems } = await this.productsService.findAll(page, limit, taste, search, hasStock, sortBy, sortOrder);
     
     return {
       message: 'Berhasil mengambil semua produk',
