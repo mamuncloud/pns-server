@@ -212,7 +212,7 @@ export class PaymentService {
           type: 'SALE',
           quantity: -item.quantity,
           referenceId: order.id,
-          note: 'Penjualan QRIS (Mayar Webhook)',
+          note: 'Penjualan MAYAR (Mayar Webhook)',
         });
       }
 
@@ -222,8 +222,8 @@ export class PaymentService {
           type: 'INCOME',
           category: 'SALES',
           amount: order.totalAmount,
-          description: `Penjualan QRIS Pesanan #${order.id.split('-')[0].toUpperCase()}`,
-          paymentMethod: 'QRIS',
+          description: `Penjualan MAYAR Pesanan #${order.id.split('-')[0].toUpperCase()}`,
+          paymentMethod: 'MAYAR',
           referenceId: order.id,
         },
         tx,

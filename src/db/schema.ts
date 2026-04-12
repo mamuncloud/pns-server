@@ -37,7 +37,7 @@ export const stockMovementTypeEnum = pgEnum('StockMovementType', [
   'RETURN',
 ]);
 
-export const paymentMethodEnum = pgEnum('PaymentMethod', ['CASH', 'QRIS']);
+export const paymentMethodEnum = pgEnum('PaymentMethod', ['CASH', 'EDC_BCA', 'MAYAR']);
 
 export const transactionTypeEnum = pgEnum('TransactionType', ['INCOME', 'EXPENSE']);
 

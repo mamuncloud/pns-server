@@ -20,8 +20,8 @@ export class RecordAdjustmentDto {
   @IsNotEmpty()
   description: string;
 
-  @ApiProperty({ enum: ['CASH', 'QRIS'], required: false, default: 'CASH' })
-  @IsEnum(['CASH', 'QRIS'])
+  @ApiProperty({ enum: ['CASH', 'EDC_BCA', 'MAYAR'], required: false, default: 'CASH' })
+  @IsEnum(['CASH', 'EDC_BCA', 'MAYAR'])
   @IsOptional()
-  paymentMethod?: 'CASH' | 'QRIS';
+  paymentMethod?: 'CASH' | 'EDC_BCA' | 'MAYAR';
 }

@@ -34,17 +34,17 @@ export class OrdersService {
   /**
    * Create a new order.
    *
-   * WALK_IN CASH → stock deducted + income recorded immediately (cashier-confirmed sale)
-   * QRIS PRE_ORDER → order PENDING, payment record created, Mayar invoice generated
-   *                  → stock/income deferred until webhook confirms payment
+   * WALK_IN (CASH/EDC_BCA) → stock deducted + income recorded immediately, status = COMPLETED
+   * PRE_ORDER (MAYAR)      → order PENDING, payment record created, Mayar invoice generated
+   *                        → stock/income deferred until webhook confirms payment
    */
   async create(dto: CreateOrderDto, authUserId?: string) {
-    // SECURITY CHECK: WALK_IN or CASH must be authenticated (Staff POS)
-    const isStaffOrder = dto.orderType === 'WALK_IN' || dto.paymentMethod === 'CASH';
+    // SECURITY CHECK: WALK_IN must be authenticated (Staff POS)
+    const isStaffOrder = dto.orderType === 'WALK_IN';
 
     if (isStaffOrder && !authUserId) {
       throw new UnauthorizedException(
-        'Transaksi CASH/WALK_IN harus dilakukan oleh petugas (login diperlukan)',
+        'Transaksi WALK_IN harus dilakukan oleh petugas (login diperlukan)',
       );
     }
 
@@ -89,11 +89,11 @@ export class OrdersService {
       // 2. Calculate total
       const totalAmount = dto.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-      // 2. Status: QRIS always starts PENDING
-      const isQris = dto.paymentMethod === 'QRIS';
-      const paidAmount = isQris ? 0 : dto.paidAmount || 0;
-      const changeAmount = isQris ? 0 : Math.max(0, paidAmount - totalAmount);
-      const status = isQris ? 'PENDING' : 'PAID';
+      // 2. Status: PRE_ORDER (MAYAR) starts PENDING; WALK_IN goes straight to COMPLETED
+      const isPreOrder = dto.orderType === 'PRE_ORDER';
+      const paidAmount = isPreOrder ? 0 : dto.paidAmount || 0;
+      const changeAmount = isPreOrder ? 0 : Math.max(0, paidAmount - totalAmount);
+      const status = isPreOrder ? 'PENDING' : 'COMPLETED';
 
       // 3. Create order record
       const [order] = await tx
@@ -128,20 +128,20 @@ export class OrdersService {
           price: item.price,
         });
 
-        // For WALK_IN CASH only: deduct stock immediately
-        if (!isQris) {
+        // For WALK_IN only: deduct stock immediately
+        if (!isPreOrder) {
           await this.stockService.recordMovement(tx, {
             productVariantId: item.productVariantId,
             type: 'SALE',
             quantity: -item.quantity,
             referenceId: order.id,
-            note: 'Penjualan',
+            note: `Penjualan ${dto.paymentMethod}`,
           });
         }
       }
 
-      // 5. For WALK_IN CASH: record income immediately
-      if (!isQris) {
+      // 5. For WALK_IN: record income immediately
+      if (!isPreOrder) {
         await this.financeService.recordTransaction(
           {
             type: 'INCOME',
@@ -156,8 +156,8 @@ export class OrdersService {
         );
       }
 
-      // 6. For QRIS: create a payment record + generate Mayar invoice
-      if (isQris) {
+      // 6. For PRE_ORDER (MAYAR): create a payment record + generate Mayar invoice
+      if (isPreOrder) {
         // Create payment record in DB
         const [payment] = await tx
           .insert(schema.payments)
@@ -218,7 +218,7 @@ export class OrdersService {
             );
           }
 
-          throw new Error(`Gagal membuat link pembayaran QRIS: ${errorMessage}`, { cause: error });
+          throw new Error(`Gagal membuat link pembayaran Mayar: ${errorMessage}`, { cause: error });
         }
       }
 
@@ -331,14 +331,60 @@ export class OrdersService {
     };
   }
 
+  /**
+   * Update order status with validated transitions.
+   *
+   * Allowed transitions:
+   *   PAID → READY     (cashier preparing items)
+   *   READY → COMPLETED (customer picked up)
+   *   any   → CANCELLED (staff cancellation)
+   */
+  async updateStatus(orderId: string, newStatus: 'READY' | 'COMPLETED' | 'CANCELLED') {
+    const order = await this.db.query.orders.findFirst({
+      where: eq(schema.orders.id, orderId),
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Pesanan dengan ID ${orderId} tidak ditemukan`);
+    }
+
+    // Validate transitions
+    const validTransitions: Record<string, string[]> = {
+      PAID: ['READY', 'CANCELLED'],
+      READY: ['COMPLETED', 'CANCELLED'],
+      PENDING: ['CANCELLED'],
+    };
+
+    const allowedNext = validTransitions[order.status] || [];
+
+    if (!allowedNext.includes(newStatus)) {
+      throw new BadRequestException(
+        `Tidak dapat mengubah status dari ${order.status} ke ${newStatus}. ` +
+          `Transisi yang diperbolehkan: ${allowedNext.join(', ') || 'tidak ada'}`,
+      );
+    }
+
+    await this.db
+      .update(schema.orders)
+      .set({ status: newStatus as any })
+      .where(eq(schema.orders.id, orderId));
+
+    this.logger.log(`Order ${orderId} status updated: ${order.status} → ${newStatus}`);
+
+    return {
+      message: `Status pesanan berhasil diubah ke ${newStatus}`,
+      data: { id: orderId, previousStatus: order.status, status: newStatus },
+    };
+  }
+
   async getDashboardSummary() {
     const result = await this.db
       .select({
-        totalRevenue: sql<number>`COALESCE(SUM(${schema.orders.totalAmount}) FILTER (WHERE ${schema.orders.status} IN ('PAID', 'COMPLETED')), 0)`,
+        totalRevenue: sql<number>`COALESCE(SUM(${schema.orders.totalAmount}) FILTER (WHERE ${schema.orders.status} IN ('PAID', 'READY', 'COMPLETED')), 0)`,
         totalOrders: sql<number>`COUNT(${schema.orders.id})`,
         pendingOrders: sql<number>`COUNT(${schema.orders.id}) FILTER (WHERE ${schema.orders.status} = 'PENDING')`,
-        walkInRevenue: sql<number>`COALESCE(SUM(${schema.orders.totalAmount}) FILTER (WHERE ${schema.orders.orderType} = 'WALK_IN' AND ${schema.orders.status} IN ('PAID', 'COMPLETED')), 0)`,
-        preOrderRevenue: sql<number>`COALESCE(SUM(${schema.orders.totalAmount}) FILTER (WHERE ${schema.orders.orderType} = 'PRE_ORDER' AND ${schema.orders.status} IN ('PAID', 'COMPLETED')), 0)`,
+        walkInRevenue: sql<number>`COALESCE(SUM(${schema.orders.totalAmount}) FILTER (WHERE ${schema.orders.orderType} = 'WALK_IN' AND ${schema.orders.status} IN ('PAID', 'READY', 'COMPLETED')), 0)`,
+        preOrderRevenue: sql<number>`COALESCE(SUM(${schema.orders.totalAmount}) FILTER (WHERE ${schema.orders.orderType} = 'PRE_ORDER' AND ${schema.orders.status} IN ('PAID', 'READY', 'COMPLETED')), 0)`,
       })
       .from(schema.orders);
 

@@ -9,7 +9,8 @@ export enum OrderType {
 
 export enum PaymentMethod {
   CASH = 'CASH',
-  QRIS = 'QRIS',
+  EDC_BCA = 'EDC_BCA',
+  MAYAR = 'MAYAR',
 }
 
 class CreateOrderItemDto {
