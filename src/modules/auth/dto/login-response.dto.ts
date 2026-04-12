@@ -10,7 +10,10 @@ class LoginUserDto {
   @ApiProperty({ example: 'Manager One', nullable: true })
   name: string | null;
 
-  @ApiProperty({ example: 'MANAGER', description: 'Role of the user (e.g. MANAGER, CASHIER, CUSTOMER)' })
+  @ApiProperty({
+    example: 'MANAGER',
+    description: 'Role of the user (e.g. MANAGER, CASHIER, CUSTOMER)',
+  })
   role: string;
 
   @ApiProperty({ enum: ['EMPLOYEE', 'USER'], example: 'EMPLOYEE' })

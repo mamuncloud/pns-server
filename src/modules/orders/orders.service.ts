@@ -1,4 +1,11 @@
-import { Inject, Injectable, NotFoundException, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  Logger,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
@@ -36,7 +43,9 @@ export class OrdersService {
     const isStaffOrder = dto.orderType === 'WALK_IN' || dto.paymentMethod === 'CASH';
 
     if (isStaffOrder && !authUserId) {
-      throw new UnauthorizedException('Transaksi CASH/WALK_IN harus dilakukan oleh petugas (login diperlukan)');
+      throw new UnauthorizedException(
+        'Transaksi CASH/WALK_IN harus dilakukan oleh petugas (login diperlukan)',
+      );
     }
 
     // CHECK STORE STATUS: Block order if store is closed
@@ -48,7 +57,7 @@ export class OrdersService {
     return await this.db.transaction(async (tx) => {
       // 1. Identify or Register Customer
       let customerId = dto.userId;
-      
+
       if (dto.customerPhone) {
         // Look up by phone
         const existingCustomer = await tx.query.users.findFirst({
@@ -59,16 +68,20 @@ export class OrdersService {
           customerId = existingCustomer.id;
           // Optional: Update name if provided and different
           if (dto.customerName && existingCustomer.name !== dto.customerName) {
-            await tx.update(schema.users)
+            await tx
+              .update(schema.users)
               .set({ name: dto.customerName })
               .where(eq(schema.users.id, existingCustomer.id));
           }
         } else {
           // Auto-register new customer
-          const [newCustomer] = await tx.insert(schema.users).values({
-            phone: dto.customerPhone,
-            name: dto.customerName || dto.customerPhone,
-          }).returning();
+          const [newCustomer] = await tx
+            .insert(schema.users)
+            .values({
+              phone: dto.customerPhone,
+              name: dto.customerName || dto.customerPhone,
+            })
+            .returning();
           customerId = newCustomer.id;
         }
       }
@@ -78,22 +91,25 @@ export class OrdersService {
 
       // 2. Status: QRIS always starts PENDING
       const isQris = dto.paymentMethod === 'QRIS';
-      const paidAmount = isQris ? 0 : (dto.paidAmount || 0);
+      const paidAmount = isQris ? 0 : dto.paidAmount || 0;
       const changeAmount = isQris ? 0 : Math.max(0, paidAmount - totalAmount);
       const status = isQris ? 'PENDING' : 'PAID';
 
       // 3. Create order record
-      const [order] = await tx.insert(schema.orders).values({
-        userId: customerId, // Linked to the identified/created customer
-        customerName: dto.customerName,
-        customerPhone: dto.customerPhone,
-        orderType: dto.orderType as any,
-        totalAmount,
-        status: status as any,
-        paymentMethod: (dto.paymentMethod || 'CASH') as any,
-        paidAmount,
-        changeAmount,
-      }).returning();
+      const [order] = await tx
+        .insert(schema.orders)
+        .values({
+          userId: customerId, // Linked to the identified/created customer
+          customerName: dto.customerName,
+          customerPhone: dto.customerPhone,
+          orderType: dto.orderType as any,
+          totalAmount,
+          status: status as any,
+          paymentMethod: (dto.paymentMethod || 'CASH') as any,
+          paidAmount,
+          changeAmount,
+        })
+        .returning();
 
       // 4. Create order items
       for (const item of dto.items) {
@@ -126,26 +142,32 @@ export class OrdersService {
 
       // 5. For WALK_IN CASH: record income immediately
       if (!isQris) {
-        await this.financeService.recordTransaction({
-          type: 'INCOME',
-          category: 'SALES',
-          amount: totalAmount,
-          description: `Penjualan Pesanan #${order.id.slice(-6)}`,
-          paymentMethod: (dto.paymentMethod || 'CASH') as any,
-          referenceId: order.id,
-          employeeId: authUserId, // Record the staff member who performed the transaction
-        }, tx);
+        await this.financeService.recordTransaction(
+          {
+            type: 'INCOME',
+            category: 'SALES',
+            amount: totalAmount,
+            description: `Penjualan Pesanan #${order.id.slice(-6)}`,
+            paymentMethod: (dto.paymentMethod || 'CASH') as any,
+            referenceId: order.id,
+            employeeId: authUserId, // Record the staff member who performed the transaction
+          },
+          tx,
+        );
       }
 
       // 6. For QRIS: create a payment record + generate Mayar invoice
       if (isQris) {
         // Create payment record in DB
-        const [payment] = await tx.insert(schema.payments).values({
-          orderId: order.id,
-          provider: 'MAYAR',
-          status: 'PENDING',
-          amount: totalAmount,
-        }).returning();
+        const [payment] = await tx
+          .insert(schema.payments)
+          .values({
+            orderId: order.id,
+            provider: 'MAYAR',
+            status: 'PENDING',
+            amount: totalAmount,
+          })
+          .returning();
 
         // Call Mayar API
         try {
@@ -155,7 +177,8 @@ export class OrdersService {
           );
 
           // Update payment record with provider details and payment URL
-          await tx.update(schema.payments)
+          await tx
+            .update(schema.payments)
             .set({
               paymentUrl: invoiceResult.paymentUrl,
               providerInvoiceId: invoiceResult.mayarInvoiceId,
@@ -165,30 +188,36 @@ export class OrdersService {
             .where(eq(schema.payments.id, payment.id));
 
           // Also denormalize paymentUrl on order for quick API response
-          await tx.update(schema.orders)
+          await tx
+            .update(schema.orders)
             .set({ paymentUrl: invoiceResult.paymentUrl })
             .where(eq(schema.orders.id, order.id));
 
           order.paymentUrl = invoiceResult.directPaymentUrl;
 
           // Send WhatsApp notification in background
-          this.whatsappService.sendPaymentLink(
-            dto.customerPhone,
-            invoiceResult.directPaymentUrl,
-            order.id,
-            totalAmount,
-            dto.customerName || dto.customerPhone,
-          ).catch((err) =>
-            this.logger.error(`Failed to send WhatsApp notification: ${err.message}`),
-          );
+          this.whatsappService
+            .sendPaymentLink(
+              dto.customerPhone,
+              invoiceResult.directPaymentUrl,
+              order.id,
+              totalAmount,
+              dto.customerName || dto.customerPhone,
+            )
+            .catch((err) =>
+              this.logger.error(`Failed to send WhatsApp notification: ${err.message}`),
+            );
         } catch (error: any) {
           const errorMessage = error.message;
           this.logger.error(`Mayar invoice generation failed: ${errorMessage}`);
-          
+
           if (errorMessage.includes('Duplicate Request')) {
-            throw new Error('Permintaan duplikat terdeteksi. Silakan tunggu 1 menit sebelum mencoba lagi dengan nomor WhatsApp yang sama.', { cause: error });
+            throw new Error(
+              'Permintaan duplikat terdeteksi. Silakan tunggu 1 menit sebelum mencoba lagi dengan nomor WhatsApp yang sama.',
+              { cause: error },
+            );
           }
-          
+
           throw new Error(`Gagal membuat link pembayaran QRIS: ${errorMessage}`, { cause: error });
         }
       }
@@ -230,9 +259,7 @@ export class OrdersService {
 
     if (!search) return orders;
 
-    return orders.filter((order) =>
-      order.user?.name?.toLowerCase().includes(search.toLowerCase())
-    );
+    return orders.filter((order) => order.user?.name?.toLowerCase().includes(search.toLowerCase()));
   }
 
   async findOne(id: string) {
@@ -285,17 +312,22 @@ export class OrdersService {
         quantity: item.quantity,
         subtotal: item.price * item.quantity,
       })),
-      payment: order.payments && order.payments.length > 0 ? {
-        status: order.payments[0].status,
-        method: order.paymentMethod,
-        paymentUrl: order.payments[0].paymentUrl,
-        expiresAt: order.payments[0].expiresAt,
-        directPaymentUrl: order.payments[0].provider === 'MAYAR' && 
-                         order.payments[0].paymentUrl?.includes('/invoices/') && 
-                         order.payments[0].providerTransactionId
-          ? order.payments[0].paymentUrl.split('/invoices/')[0] + `/pay/${order.payments[0].providerTransactionId}`
-          : order.payments[0].paymentUrl,
-      } : null,
+      payment:
+        order.payments && order.payments.length > 0
+          ? {
+              status: order.payments[0].status,
+              method: order.paymentMethod,
+              paymentUrl: order.payments[0].paymentUrl,
+              expiresAt: order.payments[0].expiresAt,
+              directPaymentUrl:
+                order.payments[0].provider === 'MAYAR' &&
+                order.payments[0].paymentUrl?.includes('/invoices/') &&
+                order.payments[0].providerTransactionId
+                  ? order.payments[0].paymentUrl.split('/invoices/')[0] +
+                    `/pay/${order.payments[0].providerTransactionId}`
+                  : order.payments[0].paymentUrl,
+            }
+          : null,
     };
   }
 }

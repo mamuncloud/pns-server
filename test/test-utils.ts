@@ -39,7 +39,10 @@ export async function createTestActionApp(): Promise<INestApplication> {
   return app;
 }
 
-export function getTestToken(jwtService: JwtService, role: 'MANAGER' | 'CASHIER' | 'ADMIN' = 'MANAGER') {
+export function getTestToken(
+  jwtService: JwtService,
+  role: 'MANAGER' | 'CASHIER' | 'ADMIN' = 'MANAGER',
+) {
   const payload = {
     sub: 'test-user-id',
     email: 'test@example.com',

@@ -14,7 +14,10 @@ export class AdjustStockDto {
   @IsInt()
   quantity: number;
 
-  @ApiPropertyOptional({ description: 'Reason for the adjustment', example: 'Stok rusak saat pengiriman' })
+  @ApiPropertyOptional({
+    description: 'Reason for the adjustment',
+    example: 'Stok rusak saat pengiriman',
+  })
   @IsOptional()
   @IsString()
   note?: string;

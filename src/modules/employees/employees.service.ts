@@ -35,12 +35,15 @@ export class EmployeesService {
       }
     }
 
-    const [newEmployee] = await this.db.insert(schema.employees).values({
-      name: createEmployeeDto.name,
-      email: createEmployeeDto.email,
-      phone: createEmployeeDto.phone,
-      role: createEmployeeDto.role,
-    }).returning();
+    const [newEmployee] = await this.db
+      .insert(schema.employees)
+      .values({
+        name: createEmployeeDto.name,
+        email: createEmployeeDto.email,
+        phone: createEmployeeDto.phone,
+        role: createEmployeeDto.role,
+      })
+      .returning();
 
     // Fire & Forget welcome email
     this.mailsService.sendWelcomeEmail(newEmployee.email, newEmployee.name).catch(console.error);
@@ -97,7 +100,8 @@ export class EmployeesService {
       }
     }
 
-    const [updatedEmployee] = await this.db.update(schema.employees)
+    const [updatedEmployee] = await this.db
+      .update(schema.employees)
       .set(updateEmployeeDto)
       .where(eq(schema.employees.id, id))
       .returning();

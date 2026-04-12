@@ -16,10 +16,7 @@ export class SuppliersService {
   async findAll(search?: string) {
     if (search) {
       return this.db.query.suppliers.findMany({
-        where: and(
-          eq(schema.suppliers.isActive, true),
-          like(schema.suppliers.name, `%${search}%`)
-        ),
+        where: and(eq(schema.suppliers.isActive, true), like(schema.suppliers.name, `%${search}%`)),
         orderBy: (suppliers, { asc }) => [asc(suppliers.name)],
       });
     }
@@ -36,10 +33,7 @@ export class SuppliersService {
   }
 
   async create(createSupplierDto: CreateSupplierDto) {
-    const [supplier] = await this.db
-      .insert(schema.suppliers)
-      .values(createSupplierDto)
-      .returning();
+    const [supplier] = await this.db.insert(schema.suppliers).values(createSupplierDto).returning();
     return supplier;
   }
 

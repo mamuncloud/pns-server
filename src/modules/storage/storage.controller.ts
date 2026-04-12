@@ -1,11 +1,11 @@
-import { 
-  Controller, 
-  Post, 
-  UseInterceptors, 
-  UploadedFiles, 
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFiles,
   UploadedFile,
   BadRequestException,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -39,11 +39,13 @@ export class StorageController {
       },
     },
   })
-  @UseInterceptors(FilesInterceptor('files', 10, {
-    limits: {
-      fileSize: 2 * 1024 * 1024, // 2MB
-    }
-  }))
+  @UseInterceptors(
+    FilesInterceptor('files', 10, {
+      limits: {
+        fileSize: 2 * 1024 * 1024, // 2MB
+      },
+    }),
+  )
   async uploadMultiple(@UploadedFiles() files: any[]) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files uploaded');
@@ -59,11 +61,13 @@ export class StorageController {
   @Roles('MANAGER')
   @ApiOperation({ summary: 'Upload single file' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', {
-    limits: {
-      fileSize: 2 * 1024 * 1024, // 2MB
-    }
-  }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 2 * 1024 * 1024, // 2MB
+      },
+    }),
+  )
   async uploadSingle(@UploadedFile() file: any) {
     if (!file) {
       throw new BadRequestException('No file uploaded');

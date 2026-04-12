@@ -1,9 +1,27 @@
-import { Controller, Get, Param, NotFoundException, Query, Post, Body, Patch, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  NotFoundException,
+  Query,
+  Post,
+  Body,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto, CreateVariantDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiParam,
+  ApiBearerAuth,
+  ApiQuery,
+  ApiBody,
+} from '@nestjs/swagger';
 import { AllProductsResponseDto, SingleProductResponseDto } from './dto/product-response.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -13,9 +31,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-  constructor(
-    private readonly productsService: ProductsService,
-  ) {}
+  constructor(private readonly productsService: ProductsService) {}
 
   @Get('brands')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -47,13 +63,28 @@ export class ProductsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all products', description: 'Returns a paginated list of all products along with their variants.' })
+  @ApiOperation({
+    summary: 'Get all products',
+    description: 'Returns a paginated list of all products along with their variants.',
+  })
   @ApiQuery({ name: 'search', required: false, description: 'Search products by name' })
-  @ApiResponse({ status: 200, description: 'Products retrieved successfully', type: AllProductsResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Products retrieved successfully',
+    type: AllProductsResponseDto,
+  })
   async findAll(@Query() query: PaginationQueryDto) {
     const { page, limit, taste, search, hasStock, sortBy, sortOrder } = query;
-    const { data, totalItems } = await this.productsService.findAll(page, limit, taste, search, hasStock, sortBy, sortOrder);
-    
+    const { data, totalItems } = await this.productsService.findAll(
+      page,
+      limit,
+      taste,
+      search,
+      hasStock,
+      sortBy,
+      sortOrder,
+    );
+
     return {
       message: 'Berhasil mengambil semua produk',
       data,
@@ -67,9 +98,16 @@ export class ProductsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get product by ID', description: 'Returns detailed information for a single product and its variants.' })
+  @ApiOperation({
+    summary: 'Get product by ID',
+    description: 'Returns detailed information for a single product and its variants.',
+  })
   @ApiParam({ name: 'id', description: 'Unique identifier of the product', example: 'uuid-456' })
-  @ApiResponse({ status: 200, description: 'Product detail retrieved successfully', type: SingleProductResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Product detail retrieved successfully',
+    type: SingleProductResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async findOne(@Param('id') id: string) {
     const product = await this.productsService.findOne(id);
@@ -86,7 +124,10 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('MANAGER')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create new product', description: 'Creates a new product with its variants, images, and pricing rules.' })
+  @ApiOperation({
+    summary: 'Create new product',
+    description: 'Creates a new product with its variants, images, and pricing rules.',
+  })
   @ApiResponse({ status: 201, description: 'Product created successfully' })
   async create(@Body() dto: CreateProductDto) {
     const result = await this.productsService.create(dto);
@@ -100,7 +141,10 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('MANAGER')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update product', description: 'Updates an existing product\'s basic fields.' })
+  @ApiOperation({
+    summary: 'Update product',
+    description: "Updates an existing product's basic fields.",
+  })
   @ApiParam({ name: 'id', description: 'Unique identifier of the product' })
   @ApiResponse({ status: 200, description: 'Product updated successfully' })
   @ApiResponse({ status: 404, description: 'Product not found' })
@@ -116,7 +160,10 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('MANAGER')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create new variant', description: 'Adds a new variant to an existing product.' })
+  @ApiOperation({
+    summary: 'Create new variant',
+    description: 'Adds a new variant to an existing product.',
+  })
   @ApiParam({ name: 'id', description: 'Unique identifier of the product' })
   @ApiBody({ type: CreateVariantDto })
   @ApiResponse({ status: 201, description: 'Variant created successfully' })
@@ -129,4 +176,3 @@ export class ProductsController {
     };
   }
 }
-

@@ -37,9 +37,7 @@ export class FinanceController {
   @Roles('MANAGER')
   @ApiOperation({ summary: 'Record a financial adjustment (e.g. Initial Capital)' })
   @ApiResponse({ status: 201, description: 'Adjustment recorded' })
-  async recordAdjustment(
-    @Body() dto: RecordAdjustmentDto
-  ) {
+  async recordAdjustment(@Body() dto: RecordAdjustmentDto) {
     return await this.financeService.recordTransaction({
       ...dto,
       date: new Date(),

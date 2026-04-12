@@ -21,10 +21,13 @@ export class ExpensesService {
    * Kategori Biaya
    */
   async createCategory(dto: CreateExpenseCategoryDto) {
-    const [category] = await this.db.insert(schema.expenseCategories).values({
-      name: dto.name,
-      description: dto.description,
-    }).returning();
+    const [category] = await this.db
+      .insert(schema.expenseCategories)
+      .values({
+        name: dto.name,
+        description: dto.description,
+      })
+      .returning();
     return category;
   }
 
@@ -96,26 +99,32 @@ export class ExpensesService {
       }
 
       // 2. Create expense record
-      const [expense] = await tx.insert(schema.expenses).values({
-        categoryId: dto.categoryId,
-        amount: dto.amount,
-        description: dto.description,
-        receiptUrl: dto.receiptUrl,
-        employeeId: dto.employeeId,
-        date: dto.date ? new Date(dto.date) : new Date(),
-      }).returning();
+      const [expense] = await tx
+        .insert(schema.expenses)
+        .values({
+          categoryId: dto.categoryId,
+          amount: dto.amount,
+          description: dto.description,
+          receiptUrl: dto.receiptUrl,
+          employeeId: dto.employeeId,
+          date: dto.date ? new Date(dto.date) : new Date(),
+        })
+        .returning();
 
       // 3. Record in financial ledger
-      await this.financeService.recordTransaction({
-        type: 'EXPENSE',
-        category: 'OPERATIONAL_EXPENSE',
-        amount: dto.amount,
-        description: `${category.name} | ${dto.description || ''}`,
-        paymentMethod: 'CASH',
-        referenceId: expense.id,
-        employeeId: dto.employeeId,
-        date: expense.date,
-      }, tx);
+      await this.financeService.recordTransaction(
+        {
+          type: 'EXPENSE',
+          category: 'OPERATIONAL_EXPENSE',
+          amount: dto.amount,
+          description: `${category.name} | ${dto.description || ''}`,
+          paymentMethod: 'CASH',
+          referenceId: expense.id,
+          employeeId: dto.employeeId,
+          date: expense.date,
+        },
+        tx,
+      );
 
       return expense;
     });
@@ -127,8 +136,8 @@ export class ExpensesService {
       with: {
         category: true,
         employee: {
-          columns: { name: true }
-        }
+          columns: { name: true },
+        },
       },
       orderBy: [desc(schema.expenses.date)],
     });
@@ -140,8 +149,8 @@ export class ExpensesService {
       with: {
         category: true,
         employee: {
-          columns: { name: true }
-        }
+          columns: { name: true },
+        },
       },
     });
     if (!expense) {

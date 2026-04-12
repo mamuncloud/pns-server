@@ -20,9 +20,11 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const { user, method, url } = request;
-    
+
     if (!user) {
-      this.logger.warn(`Access denied [${method} ${url}]: No user found in request context for ${context.getHandler().name}`);
+      this.logger.warn(
+        `Access denied [${method} ${url}]: No user found in request context for ${context.getHandler().name}`,
+      );
       return false;
     }
 
@@ -36,13 +38,13 @@ export class RolesGuard implements CanActivate {
 
     // Check specific roles (MANAGER, CASHIER, CUSTOMER)
     const hasRole = requiredRoles.some((role) => user.role === role);
-    
+
     if (!hasRole) {
       this.logger.warn(
         `Access denied [${method} ${url}] for user ${user.id}: Required: [${requiredRoles.join(', ')}], Found: ${JSON.stringify(user)}`,
       );
     }
-    
+
     return hasRole;
   }
 }

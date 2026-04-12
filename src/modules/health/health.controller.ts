@@ -9,7 +9,10 @@ export class HealthController {
   constructor(private readonly healthService: HealthService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Check system health', description: 'Returns the health status of the application and its database connection.' })
+  @ApiOperation({
+    summary: 'Check system health',
+    description: 'Returns the health status of the application and its database connection.',
+  })
   @ApiResponse({ status: 200, description: 'System is healthy' })
   @ApiResponse({ status: 503, description: 'System or database is unavailable' })
   async getHealth(@Res() res: Response) {
@@ -22,8 +25,6 @@ export class HealthController {
       timestamp: new Date().toISOString(),
     };
 
-    return res
-      .status(isOk ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE)
-      .json(response);
+    return res.status(isOk ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE).json(response);
   }
 }

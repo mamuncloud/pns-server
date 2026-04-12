@@ -34,7 +34,7 @@ describe('Consignment (e2e)', () => {
 
     it('should create a consignment (201)', async () => {
       const token = getTestToken(jwtService, 'MANAGER');
-      
+
       // Mock DB interactions for successful creation
       dbMock.query.productVariants.findFirst.mockResolvedValue({ id: 'variant-uuid', stock: 0 }); // Added this
       dbMock.insert.mockReturnThis();
@@ -52,9 +52,7 @@ describe('Consignment (e2e)', () => {
     });
 
     it('should return 401 if unauthorized', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/consignment')
-        .send(createDto);
+      const response = await request(app.getHttpServer()).post('/consignment').send(createDto);
 
       expect(response.status).toBe(401);
     });
@@ -63,10 +61,10 @@ describe('Consignment (e2e)', () => {
       // Assuming 'ANY_EMPLOYEE' doesn't have MANAGER/CASHIER permissions for this endpoint
       // Our controller requires 'MANAGER' or 'CASHIER'
       const token = getTestToken(jwtService, 'ADMIN' as any); // Let's check roles
-      // Wait, RolesGuard checks 'MANAGER', 'CASHIER'. 
+      // Wait, RolesGuard checks 'MANAGER', 'CASHIER'.
       // If I use a role not in that list, it should be 403.
-      
-      const tokenUser = getTestToken(jwtService, 'ADMIN' as any); 
+
+      const tokenUser = getTestToken(jwtService, 'ADMIN' as any);
 
       const response = await request(app.getHttpServer())
         .post('/consignment')
@@ -80,7 +78,7 @@ describe('Consignment (e2e)', () => {
   describe('GET /consignment', () => {
     it('should return list of consignments (200)', async () => {
       const token = getTestToken(jwtService, 'CASHIER');
-      
+
       dbMock.query.consignments.findMany.mockResolvedValue([
         { id: 'c1', status: 'OPEN', totalAmount: 150000 },
         { id: 'c2', status: 'CLOSED', totalAmount: 200000 },
@@ -111,7 +109,7 @@ describe('Consignment (e2e)', () => {
 
     it('should settle a consignment (201/200)', async () => {
       const token = getTestToken(jwtService, 'MANAGER');
-      
+
       // Mock findOne in service (used in settle)
       dbMock.query.productVariants.findFirst.mockResolvedValue({ id: 'v1', stock: 5 }); // Added this
       dbMock.query.consignments.findFirst.mockResolvedValue({
@@ -126,9 +124,9 @@ describe('Consignment (e2e)', () => {
             qtySettled: 0,
             unitCost: 15000,
             productVariantId: 'v1',
-            productVariant: { product: { name: 'Snack' } }
-          }
-        ]
+            productVariant: { product: { name: 'Snack' } },
+          },
+        ],
       });
 
       // Mock update
@@ -139,7 +137,7 @@ describe('Consignment (e2e)', () => {
 
       // Mock findMany for status check
       dbMock.query.consignmentItems.findMany.mockResolvedValue([
-        { qtyReceived: 10, qtySettled: 5, qtyReturned: 5 } // Fully cleared
+        { qtyReceived: 10, qtySettled: 5, qtyReturned: 5 }, // Fully cleared
       ]);
 
       const response = await request(app.getHttpServer())
@@ -153,35 +151,35 @@ describe('Consignment (e2e)', () => {
     });
 
     it('should throw BadRequest if stock is more than received', async () => {
-        const token = getTestToken(jwtService, 'MANAGER');
-        
-        dbMock.query.consignments.findFirst.mockResolvedValue({
-          id: 'consignment-uuid',
-          status: 'OPEN',
-          items: [
-            {
-              id: 'item-uuid',
-              qtyReceived: 10,
-              qtyReturned: 0,
-              qtySettled: 0,
-              unitCost: 15000,
-              productVariant: { product: { name: 'Invalid Item' } }
-            }
-          ]
-        });
-  
-        const invalidSettleDto = {
-          ...settleDto,
-          items: [{ ...settleDto.items[0], currentStock: 15 }] // 15 > 10 received
-        };
-  
-        const response = await request(app.getHttpServer())
-          .post('/consignment/settle')
-          .set('Authorization', `Bearer ${token}`)
-          .send(invalidSettleDto);
-  
-        expect(response.status).toBe(400);
-        expect(response.body.message).toContain('Stok aktual (15) melebihi sisa barang');
+      const token = getTestToken(jwtService, 'MANAGER');
+
+      dbMock.query.consignments.findFirst.mockResolvedValue({
+        id: 'consignment-uuid',
+        status: 'OPEN',
+        items: [
+          {
+            id: 'item-uuid',
+            qtyReceived: 10,
+            qtyReturned: 0,
+            qtySettled: 0,
+            unitCost: 15000,
+            productVariant: { product: { name: 'Invalid Item' } },
+          },
+        ],
       });
+
+      const invalidSettleDto = {
+        ...settleDto,
+        items: [{ ...settleDto.items[0], currentStock: 15 }], // 15 > 10 received
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/consignment/settle')
+        .set('Authorization', `Bearer ${token}`)
+        .send(invalidSettleDto);
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('Stok aktual (15) melebihi sisa barang');
+    });
   });
 });

@@ -8,11 +8,11 @@ async function checkDb() {
   const client = new Client({
     connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL,
   });
-  
+
   try {
     await client.connect();
     console.log('Connected to Database');
-    
+
     // Check for existing enums
     const enumsRes = await client.query(`
       SELECT n.nspname as schema, t.typname as name
@@ -20,16 +20,21 @@ async function checkDb() {
       JOIN pg_namespace n ON n.oid = t.typnamespace
       WHERE (t.typtype = 'e')
     `);
-    console.log('Existing Enums:', enumsRes.rows.map(r => r.name));
-    
+    console.log(
+      'Existing Enums:',
+      enumsRes.rows.map((r) => r.name),
+    );
+
     // Check for existing tables
     const tablesRes = await client.query(`
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public'
     `);
-    console.log('Existing Tables:', tablesRes.rows.map(r => r.table_name));
-    
+    console.log(
+      'Existing Tables:',
+      tablesRes.rows.map((r) => r.table_name),
+    );
   } catch (err) {
     console.error('Error:', err);
   } finally {

@@ -38,9 +38,9 @@ describe('MailsService', () => {
     }).compile();
 
     service = module.get<MailsService>(MailsService);
-    
+
     // Access the send mock from the created instance
-     
+
     mockSend = service['resend'].emails.send as jest.Mock;
   });
 

@@ -14,7 +14,7 @@ export class StorageService {
     const supabaseKey = this.configService.get<string>('SUPABASE_ANON_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
-       this.logger.error('SUPABASE_URL or SUPABASE_ANON_KEY is missing in configuration');
+      this.logger.error('SUPABASE_URL or SUPABASE_ANON_KEY is missing in configuration');
     }
 
     this.supabase = createClient(supabaseUrl, supabaseKey);
@@ -29,7 +29,7 @@ export class StorageService {
       .from(this.bucketName)
       .upload(filePath, file.buffer, {
         contentType: file.mimetype,
-        upsert: false
+        upsert: false,
       });
 
     if (error) {

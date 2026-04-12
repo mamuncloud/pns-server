@@ -20,16 +20,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest();
 
     const httpStatus =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const method = httpAdapter.getRequestMethod(request);
     const url = httpAdapter.getRequestUrl(request);
     const message = exception instanceof Error ? exception.message : 'Internal server error';
     const stack = exception instanceof Error ? exception.stack : 'No stack trace';
 
-    // Refine logging: 
+    // Refine logging:
     // - 5xx errors: Log as ERROR with full stack trace for debugging
     // - 4xx errors: Log as WARN without stack trace (normal client/auth actions)
     if (httpStatus >= 500) {

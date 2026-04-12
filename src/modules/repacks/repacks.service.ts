@@ -33,7 +33,7 @@ export class RepacksService {
     if (!search) return repacks;
 
     return repacks.filter((repack) =>
-      repack.product?.name?.toLowerCase().includes(search.toLowerCase())
+      repack.product?.name?.toLowerCase().includes(search.toLowerCase()),
     );
   }
 
@@ -108,7 +108,7 @@ export class RepacksService {
           // Update HPP and sizeInGram to latest repack details
           await tx
             .update(schema.productVariants)
-            .set({ 
+            .set({
               hpp: unitHpp,
               sizeInGram: item.sizeInGram,
             })

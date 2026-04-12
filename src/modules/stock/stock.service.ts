@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
@@ -80,7 +75,7 @@ export class StockService {
         columns: { id: true },
       });
       variantIds = variants.map((v) => v.id);
-      
+
       if (variantIds.length === 0) return [];
     }
 
@@ -89,9 +84,10 @@ export class StockService {
     }
 
     const movements = await this.db.query.stockMovements.findMany({
-      where: variantIds.length > 0
-        ? inArray(schema.stockMovements.productVariantId, variantIds)
-        : undefined,
+      where:
+        variantIds.length > 0
+          ? inArray(schema.stockMovements.productVariantId, variantIds)
+          : undefined,
       with: {
         productVariant: {
           with: {
@@ -105,7 +101,7 @@ export class StockService {
     if (!params?.search) return movements;
 
     return movements.filter((movement) =>
-      movement.productVariant?.product?.name?.toLowerCase().includes(params.search!.toLowerCase())
+      movement.productVariant?.product?.name?.toLowerCase().includes(params.search!.toLowerCase()),
     );
   }
 

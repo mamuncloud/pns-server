@@ -11,18 +11,18 @@ export class MailsService {
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.from = this.configService.get<string>('MAIL_FROM') || 'onboarding@resend.dev';
-    
+
     if (!apiKey) {
       this.logger.warn('RESEND_API_KEY is not defined. Emails will not be sent.');
     }
-    
+
     this.resend = new Resend(apiKey);
   }
 
   async sendMagicLink(email: string, magicLink: string, userName: string) {
     try {
       this.logger.log(`Sending magic link to ${email}`);
-      
+
       const { data, error } = await this.resend.emails.send({
         from: this.from,
         to: email,
@@ -58,7 +58,7 @@ export class MailsService {
   async sendWelcomeEmail(email: string, userName: string) {
     try {
       this.logger.log(`Sending welcome email to ${email}`);
-      
+
       const { data, error } = await this.resend.emails.send({
         from: this.from,
         to: email,

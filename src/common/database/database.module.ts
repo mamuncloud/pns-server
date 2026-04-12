@@ -27,9 +27,9 @@ const PG_POOL = 'PG_POOL';
       provide: DRIZZLE_DB,
       inject: [PG_POOL],
       useFactory: (pool: pg.Pool) => {
-        return drizzle(pool, { 
+        return drizzle(pool, {
           schema,
-          logger: false 
+          logger: false,
         });
       },
     },

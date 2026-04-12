@@ -1,7 +1,7 @@
-import { Module } from "@nestjs/common";
-import { StoreSettingsService } from "./store-settings.service";
-import { StoreSettingsController } from "./store-settings.controller";
-import { DatabaseModule } from "../../common/database/database.module";
+import { Module } from '@nestjs/common';
+import { StoreSettingsService } from './store-settings.service';
+import { StoreSettingsController } from './store-settings.controller';
+import { DatabaseModule } from '../../common/database/database.module';
 
 @Module({
   imports: [DatabaseModule],

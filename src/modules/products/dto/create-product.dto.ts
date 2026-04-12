@@ -1,17 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { 
-  IsArray, 
-  IsBoolean, 
-  IsInt, 
-  IsNotEmpty, 
-  IsOptional, 
-  IsString, 
-  Min, 
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
   ValidateNested,
   ArrayMinSize,
   ArrayMaxSize,
-  IsEnum
+  IsEnum,
 } from 'class-validator';
 
 export enum ProductVariantLabel {
@@ -71,7 +71,6 @@ export enum ProductTaste {
 }
 
 export class CreateProductDto {
-
   @ApiProperty({ example: 'Product Name' })
   @IsString()
   @IsNotEmpty()
@@ -87,7 +86,12 @@ export class CreateProductDto {
   @IsString()
   brandId?: string;
 
-  @ApiProperty({ enum: ProductTaste, isArray: true, example: [ProductTaste.MANIS, ProductTaste.PEDAS], description: 'Min 1, max 3 flavors' })
+  @ApiProperty({
+    enum: ProductTaste,
+    isArray: true,
+    example: [ProductTaste.MANIS, ProductTaste.PEDAS],
+    description: 'Min 1, max 3 flavors',
+  })
   @IsArray()
   @IsEnum(ProductTaste, { each: true })
   @ArrayMinSize(1)

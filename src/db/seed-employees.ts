@@ -34,20 +34,20 @@ async function seedEmployees() {
     ];
 
     for (const employee of employeesToInsert) {
-        try {
-            const existing = await db.query.employees.findFirst({
-                where: eq(schema.employees.email, employee.email),
-            });
+      try {
+        const existing = await db.query.employees.findFirst({
+          where: eq(schema.employees.email, employee.email),
+        });
 
-            if (!existing) {
-                await db.insert(schema.employees).values(employee);
-                console.log(`✅ Inserted employee: ${employee.email} (${employee.role})`);
-            } else {
-                console.log(`⚠️ Employee ${employee.email} already exists, skipping...`);
-            }
-        } catch (e) {
-            console.error(`❌ Error seeding ${employee.email}:`, e);
+        if (!existing) {
+          await db.insert(schema.employees).values(employee);
+          console.log(`✅ Inserted employee: ${employee.email} (${employee.role})`);
+        } else {
+          console.log(`⚠️ Employee ${employee.email} already exists, skipping...`);
         }
+      } catch (e) {
+        console.error(`❌ Error seeding ${employee.email}:`, e);
+      }
     }
 
     console.log('✨ Employee seeding completed!');
