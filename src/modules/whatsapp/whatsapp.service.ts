@@ -16,6 +16,19 @@ export class WhatsAppService {
     this.authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
   }
 
+
+  private formatPhone(phone: string): string {
+    let formattedPhone = phone.replace(/[^0-9]/g, '');
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '62' + formattedPhone.slice(1);
+    }
+    
+    if (!formattedPhone.includes('@')) {
+      formattedPhone = `${formattedPhone}@s.whatsapp.net`;
+    }
+    return formattedPhone;
+  }
+
   async sendMagicLink(phone: string, magicLink: string, userName: string) {
     if (!this.deviceId) {
       this.logger.warn('WA_DEVICE_ID is not defined. WhatsApp message will not be sent.');
@@ -27,17 +40,7 @@ export class WhatsAppService {
       return;
     }
 
-    // Ensure phone is formatted correctly for WhatsApp API
-    // If it starts with 0, replace with 62 (Indonesian country code as default)
-    let formattedPhone = phone.replace(/[^0-9]/g, '');
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = '62' + formattedPhone.slice(1);
-    }
-    
-    // Construct the WhatsApp identifier if not already provided as one
-    if (!formattedPhone.includes('@')) {
-      formattedPhone = `${formattedPhone}@s.whatsapp.net`;
-    }
+    const formattedPhone = this.formatPhone(phone);
 
     const message = `*Planet Nyemil Snack* 🍪
 Welcome back, *${userName}*! 👋
@@ -48,8 +51,41 @@ Click the link below to log in to your account. This link will expire in *15 min
 
 _If you did not request this link, please ignore this message._`;
 
+    return this.sendRawMessage(formattedPhone, message, phone);
+  }
+
+  async sendPaymentLink(phone: string, paymentUrl: string, orderId: string, amount: number, customerName: string) {
+    if (!this.deviceId) {
+      this.logger.warn('WA_DEVICE_ID is not defined. WhatsApp message will not be sent.');
+      return;
+    }
+
+    if (!phone) {
+      this.logger.warn(`Phone number for ${customerName} is empty. Skipping WhatsApp message.`);
+      return;
+    }
+
+    const formattedPhone = this.formatPhone(phone);
+    const shortOrderId = orderId.slice(-6).toUpperCase();
+    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+
+    const message = `*Planet Nyemil Snack* 🍪
+Halo *${customerName}*! 🎉
+
+Terima kasih telah memesan. Berikut adalah link pembayaran QRIS untuk Pesanan *#${shortOrderId}* sebesar *${formattedAmount}*:
+
+🔗 ${paymentUrl}
+
+Segera lakukan pembayaran dalam *3 menit* sebelum link kedaluwarsa. ⏳
+
+_Abaikan pesan ini jika Anda sudah melakukan pembayaran._`;
+
+    return this.sendRawMessage(formattedPhone, message, phone);
+  }
+
+  private async sendRawMessage(formattedPhone: string, message: string, originalPhone: string) {
     try {
-      this.logger.log(`Sending WhatsApp magic link to ${formattedPhone}`);
+      this.logger.log(`Sending WhatsApp message to ${formattedPhone}`);
       
       const response = await fetch(`${this.baseUrl}/send/message`, {
         method: 'POST',
@@ -66,14 +102,14 @@ _If you did not request this link, please ignore this message._`;
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.logger.error(`Failed to send WhatsApp message to ${phone}: ${response.status} ${errorText}`);
-        return;
+        this.logger.error(`Failed to send WhatsApp message to ${originalPhone}: ${response.status} ${errorText}`);
+        return { success: false };
       }
 
-      this.logger.log(`WhatsApp magic link sent successfully to ${phone}`);
+      this.logger.log(`WhatsApp message sent successfully to ${originalPhone}`);
       return { success: true };
     } catch (error) {
-      this.logger.error(`Error sending WhatsApp message to ${phone}: ${error.message}`);
+      this.logger.error(`Error sending WhatsApp message to ${originalPhone}: ${error.message}`);
       return { success: false, error: error.message };
     }
   }

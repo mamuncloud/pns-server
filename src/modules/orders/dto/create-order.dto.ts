@@ -54,4 +54,12 @@ export class CreateOrderDto {
   @Min(0)
   @IsOptional()
   paidAmount?: number;
+
+  @ApiProperty({ example: 'Budi Santoso', required: false })
+  @IsOptional()
+  customerName?: string;
+
+  @ApiProperty({ example: '081234567890', required: false })
+  @IsOptional()
+  customerPhone?: string;
 }
