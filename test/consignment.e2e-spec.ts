@@ -60,7 +60,6 @@ describe('Consignment (e2e)', () => {
     it('should return 403 if role is insufficient', async () => {
       // Assuming 'ANY_EMPLOYEE' doesn't have MANAGER/CASHIER permissions for this endpoint
       // Our controller requires 'MANAGER' or 'CASHIER'
-      const token = getTestToken(jwtService, 'ADMIN' as any); // Let's check roles
       // Wait, RolesGuard checks 'MANAGER', 'CASHIER'.
       // If I use a role not in that list, it should be 403.
 
