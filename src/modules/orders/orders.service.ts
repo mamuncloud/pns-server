@@ -9,7 +9,7 @@ import {
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { StockService } from '../stock/stock.service';
 import { FinanceService } from '../finance/finance.service';
@@ -328,6 +328,27 @@ export class OrdersService {
                   : order.payments[0].paymentUrl,
             }
           : null,
+    };
+  }
+
+  async getDashboardSummary() {
+    const result = await this.db
+      .select({
+        totalRevenue: sql<number>`COALESCE(SUM(${schema.orders.totalAmount}) FILTER (WHERE ${schema.orders.status} IN ('PAID', 'COMPLETED')), 0)`,
+        totalOrders: sql<number>`COUNT(${schema.orders.id})`,
+        pendingOrders: sql<number>`COUNT(${schema.orders.id}) FILTER (WHERE ${schema.orders.status} = 'PENDING')`,
+        walkInRevenue: sql<number>`COALESCE(SUM(${schema.orders.totalAmount}) FILTER (WHERE ${schema.orders.orderType} = 'WALK_IN' AND ${schema.orders.status} IN ('PAID', 'COMPLETED')), 0)`,
+        preOrderRevenue: sql<number>`COALESCE(SUM(${schema.orders.totalAmount}) FILTER (WHERE ${schema.orders.orderType} = 'PRE_ORDER' AND ${schema.orders.status} IN ('PAID', 'COMPLETED')), 0)`,
+      })
+      .from(schema.orders);
+
+    const stats = result[0];
+    return {
+      totalRevenue: Number(stats.totalRevenue),
+      totalOrders: Number(stats.totalOrders),
+      pendingOrders: Number(stats.pendingOrders),
+      walkInRevenue: Number(stats.walkInRevenue),
+      preOrderRevenue: Number(stats.preOrderRevenue),
     };
   }
 }

@@ -84,6 +84,16 @@ export class OrdersController {
     return this.ordersService.findPublic(id);
   }
 
+  @Get('summary')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ANY_EMPLOYEE')
+  @ApiOperation({ summary: 'Get order dashboard summary' })
+  @ApiResponse({ status: 200, description: 'Summary retrieved successfully' })
+  async getSummary() {
+    return this.ordersService.getDashboardSummary();
+  }
+
   @Get(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
