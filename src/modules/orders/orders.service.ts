@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, Logger, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
@@ -8,6 +8,7 @@ import { StockService } from '../stock/stock.service';
 import { FinanceService } from '../finance/finance.service';
 import { PaymentService } from '../payment/payment.service';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
+import { StoreSettingsService } from '../store-settings/store-settings.service';
 
 @Injectable()
 export class OrdersService {
@@ -20,6 +21,7 @@ export class OrdersService {
     private readonly financeService: FinanceService,
     private readonly paymentService: PaymentService,
     private readonly whatsappService: WhatsAppService,
+    private readonly storeSettingsService: StoreSettingsService,
   ) {}
 
   /**
@@ -31,11 +33,16 @@ export class OrdersService {
    */
   async create(dto: CreateOrderDto, authUserId?: string) {
     // SECURITY CHECK: WALK_IN or CASH must be authenticated (Staff POS)
-    const isQris = dto.paymentMethod === 'QRIS';
     const isStaffOrder = dto.orderType === 'WALK_IN' || dto.paymentMethod === 'CASH';
 
     if (isStaffOrder && !authUserId) {
       throw new UnauthorizedException('Transaksi CASH/WALK_IN harus dilakukan oleh petugas (login diperlukan)');
+    }
+
+    // CHECK STORE STATUS: Block order if store is closed
+    const settings = await this.storeSettingsService.getSettings();
+    if (!settings.isStoreOpen) {
+      throw new BadRequestException('Toko sedang tutup. Tidak dapat membuat pesanan saat ini.');
     }
 
     return await this.db.transaction(async (tx) => {
@@ -179,10 +186,10 @@ export class OrdersService {
           this.logger.error(`Mayar invoice generation failed: ${errorMessage}`);
           
           if (errorMessage.includes('Duplicate Request')) {
-            throw new Error('Permintaan duplikat terdeteksi. Silakan tunggu 1 menit sebelum mencoba lagi dengan nomor WhatsApp yang sama.');
+            throw new Error('Permintaan duplikat terdeteksi. Silakan tunggu 1 menit sebelum mencoba lagi dengan nomor WhatsApp yang sama.', { cause: error });
           }
           
-          throw new Error(`Gagal membuat link pembayaran QRIS: ${errorMessage}`);
+          throw new Error(`Gagal membuat link pembayaran QRIS: ${errorMessage}`, { cause: error });
         }
       }
 
