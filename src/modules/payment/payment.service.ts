@@ -5,6 +5,8 @@ import * as schema from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { StockService } from '../stock/stock.service';
 import { FinanceService } from '../finance/finance.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { PAYMENT_EVENTS, PaymentSatisfiedEvent } from './events/payment.events';
 
 export interface MayarCustomerInfo {
   name?: string;
@@ -28,6 +30,7 @@ export class PaymentService {
     private readonly db: NodePgDatabase<typeof schema>,
     private readonly stockService: StockService,
     private readonly financeService: FinanceService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -41,9 +44,11 @@ export class PaymentService {
   ): Promise<MayarInvoiceResult | null> {
     const apiKey = process.env.MAYAR_API_KEY;
     const apiUrl = process.env.MAYAR_API_URL;
-    
+
     if (!apiKey || !apiUrl) {
-      this.logger.warn(`Mayar configuration missing (apiKey: ${!!apiKey}, apiUrl: ${!!apiUrl}). Skipping invoice generation.`);
+      this.logger.warn(
+        `Mayar configuration missing (apiKey: ${!!apiKey}, apiUrl: ${!!apiUrl}). Skipping invoice generation.`,
+      );
       return null;
     }
 
@@ -52,8 +57,7 @@ export class PaymentService {
 
     const expiredAt = new Date();
     expiredAt.setMinutes(
-      expiredAt.getMinutes() + 
-      Number(process.env.MAYAR_PAYMENT_EXPIRY_MINUTES) || 10
+      expiredAt.getMinutes() + Number(process.env.MAYAR_PAYMENT_EXPIRY_MINUTES) || 10,
     );
 
     const payload = {
@@ -76,7 +80,7 @@ export class PaymentService {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json() as {
+      const data = (await response.json()) as {
         statusCode: number;
         messages: string;
         message?: string;
@@ -91,11 +95,11 @@ export class PaymentService {
       if (!response.ok || !data?.data?.link) {
         const errorMsg = data.message || data.messages || 'Unknown Mayar Error';
         this.logger.error(`Mayar API error [${response.status}]: ${JSON.stringify(data)}`);
-        
+
         if (response.status === 429) {
           throw new Error(`Mayar Duplicate Request: ${errorMsg}`, { cause: data });
         }
-        
+
         throw new Error(`Mayar API Error: ${errorMsg}`, { cause: data });
       }
 
@@ -110,7 +114,9 @@ export class PaymentService {
           directPaymentUrl = directPaymentUrl.split('/invoices/')[0] + `/pay/${mayarTransactionId}`;
         }
       } catch {
-        this.logger.warn(`Failed to transform Mayar URL: ${directPaymentUrl}. Using original link.`);
+        this.logger.warn(
+          `Failed to transform Mayar URL: ${directPaymentUrl}. Using original link.`,
+        );
       }
 
       return {
@@ -138,6 +144,11 @@ export class PaymentService {
     const event = payload.event;
     const data = payload.data;
 
+    this.logger.verbose(
+      `Mayar webhook received: event=${event}, 
+      data=${JSON.stringify(payload)}`,
+    );
+
     if (event !== 'payment.received') {
       this.logger.log(`Mayar webhook ignored: event=${event}`);
       return { received: true };
@@ -156,12 +167,16 @@ export class PaymentService {
     });
 
     if (!paymentRecord) {
-      this.logger.warn(`Mayar webhook: no payment record found for providerTransactionId=${providerTransactionId}`);
+      this.logger.warn(
+        `Mayar webhook: no payment record found for providerTransactionId=${providerTransactionId}`,
+      );
       return { received: true };
     }
 
     if (paymentRecord.status === 'PAID') {
-      this.logger.log(`Mayar webhook: payment ${paymentRecord.id} already PAID, skipping (idempotent).`);
+      this.logger.log(
+        `Mayar webhook: payment ${paymentRecord.id} already PAID, skipping (idempotent).`,
+      );
       return { received: true };
     }
 
@@ -179,12 +194,14 @@ export class PaymentService {
     // Process confirmed payment in a transaction
     await this.db.transaction(async (tx) => {
       // Mark payment record as PAID
-      await tx.update(schema.payments)
+      await tx
+        .update(schema.payments)
         .set({ status: 'PAID', paidAt: new Date() })
         .where(eq(schema.payments.id, paymentRecord.id));
 
       // Mark order as PAID
-      await tx.update(schema.orders)
+      await tx
+        .update(schema.orders)
         .set({ status: 'PAID', paidAmount: order.totalAmount })
         .where(eq(schema.orders.id, order.id));
 
@@ -200,17 +217,34 @@ export class PaymentService {
       }
 
       // Record income
-      await this.financeService.recordTransaction({
-        type: 'INCOME',
-        category: 'SALES',
-        amount: order.totalAmount,
-        description: `Penjualan QRIS Pesanan #${order.id.split('-')[0].toUpperCase()}`,
-        paymentMethod: 'QRIS',
-        referenceId: order.id,
-      }, tx);
+      await this.financeService.recordTransaction(
+        {
+          type: 'INCOME',
+          category: 'SALES',
+          amount: order.totalAmount,
+          description: `Penjualan QRIS Pesanan #${order.id.split('-')[0].toUpperCase()}`,
+          paymentMethod: 'QRIS',
+          referenceId: order.id,
+        },
+        tx,
+      );
     });
 
-    this.logger.log(`Mayar webhook: order ${order.id} and payment ${paymentRecord.id} marked as PAID.`);
+    this.logger.log(
+      `Mayar webhook: order ${order.id} and payment ${paymentRecord.id} marked as PAID.`,
+    );
+
+    // Emit event for post-payment actions (e.g., WhatsApp notification)
+    this.eventEmitter.emit(
+      PAYMENT_EVENTS.SATISFIED,
+      new PaymentSatisfiedEvent(
+        order.id,
+        order.customerName || 'Pelanggan',
+        order.customerPhone,
+        order.totalAmount,
+      ),
+    );
+
     return { received: true, orderId: order.id };
   }
 }

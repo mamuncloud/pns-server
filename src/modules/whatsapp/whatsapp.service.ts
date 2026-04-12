@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
+import { PAYMENT_EVENTS, PaymentSatisfiedEvent } from '../payment/events/payment.events';
 
 @Injectable()
 export class WhatsAppService {
@@ -7,22 +9,24 @@ export class WhatsAppService {
   private readonly baseUrl: string;
   private readonly deviceId: string;
   private readonly authHeader: string;
+  private readonly frontendUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.baseUrl = this.configService.get<string>('WA_URL') || 'https://whatsapp.planetnyemilsnack.store';
+    this.baseUrl =
+      this.configService.get<string>('WA_URL') || 'https://whatsapp.planetnyemilsnack.store';
     this.deviceId = this.configService.get<string>('WA_DEVICE_ID');
     const username = this.configService.get<string>('WA_USERNAME') || 'planet';
     const password = this.configService.get<string>('WA_PASSWORD') || 'nyemilsnack';
     this.authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
   }
-
 
   private formatPhone(phone: string): string {
     let formattedPhone = phone.replace(/[^0-9]/g, '');
     if (formattedPhone.startsWith('0')) {
       formattedPhone = '62' + formattedPhone.slice(1);
     }
-    
+
     if (!formattedPhone.includes('@')) {
       formattedPhone = `${formattedPhone}@s.whatsapp.net`;
     }
@@ -54,7 +58,60 @@ _If you did not request this link, please ignore this message._`;
     return this.sendRawMessage(formattedPhone, message, phone);
   }
 
-  async sendPaymentLink(phone: string, paymentUrl: string, orderId: string, amount: number, customerName: string) {
+  @OnEvent(PAYMENT_EVENTS.SATISFIED)
+  async handlePaymentSatisfied(event: PaymentSatisfiedEvent) {
+    this.logger.log(`Handling payment.satisfied for order ${event.orderId}`);
+
+    const orderUrl = `${this.frontendUrl}/order/${event.orderId}`;
+
+    await this.sendOrderConfirmation(
+      event.customerPhone,
+      event.customerName,
+      event.orderId,
+      orderUrl,
+    );
+  }
+
+  async sendOrderConfirmation(
+    phone: string,
+    customerName: string,
+    orderId: string,
+    orderUrl: string,
+  ) {
+    if (!this.deviceId) {
+      this.logger.warn('WA_DEVICE_ID is not defined. WhatsApp message will not be sent.');
+      return;
+    }
+
+    if (!phone) {
+      this.logger.warn(`Phone number for ${customerName} is empty. Skipping WhatsApp message.`);
+      return;
+    }
+
+    const formattedPhone = this.formatPhone(phone);
+    const shortOrderId = orderId.split('-')[0].toUpperCase();
+
+    const message = `*Planet Nyemil Snack* 🍪
+Halo *${customerName}*! 🎉
+
+Pembayaran Anda untuk Pesanan *#${shortOrderId}* telah kami terima dan berstatus *LUNAS*. ✅
+
+Silakan simpan link di bawah ini sebagai bukti pemesanan untuk pengambilan snack:
+
+🔗 ${orderUrl}
+
+Terima kasih telah berbelanja di Planet Nyemil! 🙏`;
+
+    return this.sendRawMessage(formattedPhone, message, phone);
+  }
+
+  async sendPaymentLink(
+    phone: string,
+    paymentUrl: string,
+    orderId: string,
+    amount: number,
+    customerName: string,
+  ) {
     if (!this.deviceId) {
       this.logger.warn('WA_DEVICE_ID is not defined. WhatsApp message will not be sent.');
       return;
@@ -67,7 +124,11 @@ _If you did not request this link, please ignore this message._`;
 
     const formattedPhone = this.formatPhone(phone);
     const shortOrderId = orderId.slice(-6).toUpperCase();
-    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+    const formattedAmount = new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
 
     const message = `*Planet Nyemil Snack* 🍪
 Halo *${customerName}*! 🎉
@@ -86,13 +147,13 @@ _Abaikan pesan ini jika Anda sudah melakukan pembayaran._`;
   private async sendRawMessage(formattedPhone: string, message: string, originalPhone: string) {
     try {
       this.logger.log(`Sending WhatsApp message to ${formattedPhone}`);
-      
+
       const response = await fetch(`${this.baseUrl}/send/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Device-Id': this.deviceId,
-          'Authorization': this.authHeader,
+          Authorization: this.authHeader,
         },
         body: JSON.stringify({
           phone: formattedPhone,
@@ -102,7 +163,9 @@ _Abaikan pesan ini jika Anda sudah melakukan pembayaran._`;
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.logger.error(`Failed to send WhatsApp message to ${originalPhone}: ${response.status} ${errorText}`);
+        this.logger.error(
+          `Failed to send WhatsApp message to ${originalPhone}: ${response.status} ${errorText}`,
+        );
         return { success: false };
       }
 
