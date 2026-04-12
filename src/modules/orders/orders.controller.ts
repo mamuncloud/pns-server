@@ -8,7 +8,6 @@ import {
   Query,
   UseGuards,
   Req,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiOperation,
@@ -66,7 +65,7 @@ export class OrdersController {
           name: payload.name,
           type: payload.type,
         };
-      } catch (e) {
+      } catch {
         // Token invalid, treat as guest
       }
     }

@@ -93,10 +93,10 @@ export class PaymentService {
         this.logger.error(`Mayar API error [${response.status}]: ${JSON.stringify(data)}`);
         
         if (response.status === 429) {
-          throw new Error(`Mayar Duplicate Request: ${errorMsg}`);
+          throw new Error(`Mayar Duplicate Request: ${errorMsg}`, { cause: data });
         }
         
-        throw new Error(`Mayar API Error: ${errorMsg}`);
+        throw new Error(`Mayar API Error: ${errorMsg}`, { cause: data });
       }
 
       this.logger.log(`Mayar invoice created for order ${order.id}: ${data.data.link}`);
@@ -109,7 +109,7 @@ export class PaymentService {
         if (directPaymentUrl.includes('/invoices/')) {
           directPaymentUrl = directPaymentUrl.split('/invoices/')[0] + `/pay/${mayarTransactionId}`;
         }
-      } catch (e) {
+      } catch {
         this.logger.warn(`Failed to transform Mayar URL: ${directPaymentUrl}. Using original link.`);
       }
 
@@ -125,7 +125,7 @@ export class PaymentService {
         throw error; // Re-throw our descriptive errors
       }
       this.logger.error(`Failed to call Mayar API: ${(error as Error).message}`);
-      throw new Error(`Sistem pembayaran sedang sibuk, silakan coba lagi nanti.`);
+      throw new Error(`Sistem pembayaran sedang sibuk, silakan coba lagi nanti.`, { cause: error });
     }
   }
 
