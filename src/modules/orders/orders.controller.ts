@@ -9,13 +9,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import {
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtService } from '@nestjs/jwt';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -44,7 +38,6 @@ export class OrdersController {
     const result = await this.ordersService.lookupCustomerByPhone(phone);
     return result ?? { name: null };
   }
-
 
   @Post()
   @ApiOperation({ summary: 'Create a new order (Public for QRIS, Staff-only for Cash)' })

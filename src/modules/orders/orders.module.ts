@@ -11,8 +11,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    StockModule, 
-    PaymentModule, 
+    StockModule,
+    PaymentModule,
     AuthModule,
     WhatsAppModule,
     StoreSettingsModule,

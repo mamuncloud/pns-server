@@ -1,13 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { 
-  IsArray, 
-  IsBoolean, 
-  IsEnum, 
-  IsNotEmpty, 
-  IsOptional, 
-  IsString, 
-  ValidateNested 
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
 } from 'class-validator';
 import { ProductTaste } from './create-product.dto';
 

@@ -14,7 +14,11 @@ class ProductVariantDto {
   @ApiProperty({ example: 100, description: 'Available stock' })
   stock: number;
 
-  @ApiProperty({ example: 'PNS-ORG-001', description: 'Stock Keeping Unit identifier', required: false })
+  @ApiProperty({
+    example: 'PNS-ORG-001',
+    description: 'Stock Keeping Unit identifier',
+    required: false,
+  })
   sku?: string;
 
   @ApiProperty({ example: 250, description: 'Size of the variant in grams', required: false })
@@ -28,10 +32,18 @@ class ProductDto {
   @ApiProperty({ example: 'PNS Coffee', description: 'Name of the product' })
   name: string;
 
-  @ApiProperty({ example: 'Authentic Indonesian Coffee', description: 'Detailed description of the product', required: false })
+  @ApiProperty({
+    example: 'Authentic Indonesian Coffee',
+    description: 'Detailed description of the product',
+    required: false,
+  })
   description?: string;
 
-  @ApiProperty({ example: 'https://example.com/image.jpg', description: 'URL to product image', required: false })
+  @ApiProperty({
+    example: 'https://example.com/image.jpg',
+    description: 'URL to product image',
+    required: false,
+  })
   imageUrl?: string;
 
   @ApiProperty({ example: ['Strong', 'Nutty'], description: 'Array of taste notes' })
@@ -40,7 +52,10 @@ class ProductDto {
   @ApiProperty({ example: true, description: 'Whether the product is currently active' })
   isActive: boolean;
 
-  @ApiProperty({ type: [ProductVariantDto], description: 'List of available variants for this product' })
+  @ApiProperty({
+    type: [ProductVariantDto],
+    description: 'List of available variants for this product',
+  })
   variants: ProductVariantDto[];
 }
 

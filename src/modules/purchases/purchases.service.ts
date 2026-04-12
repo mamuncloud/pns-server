@@ -18,7 +18,6 @@ export class PurchasesService {
     private readonly financeService: FinanceService,
   ) {}
 
-
   async create(dto: CreatePurchaseDto) {
     return await this.db.transaction(async (tx) => {
       // 1. Calculate total amount (total cost + extra costs for all items)
@@ -70,14 +69,17 @@ export class PurchasesService {
 
       // 4. Record financial transaction if COMPLETED
       if (dto.status === 'COMPLETED') {
-        await this.financeService.recordTransaction({
-          type: 'EXPENSE',
-          category: 'STOCK_PURCHASE',
-          amount: totalAmount,
-          description: `Pembelian Stok dari Supplier ${dto.supplierId}`,
-          paymentMethod: 'CASH', // Default for now
-          referenceId: purchase.id,
-        }, tx);
+        await this.financeService.recordTransaction(
+          {
+            type: 'EXPENSE',
+            category: 'STOCK_PURCHASE',
+            amount: totalAmount,
+            description: `Pembelian Stok dari Supplier ${dto.supplierId}`,
+            paymentMethod: 'CASH', // Default for now
+            referenceId: purchase.id,
+          },
+          tx,
+        );
       }
 
       return {
@@ -112,7 +114,7 @@ export class PurchasesService {
     if (!search) return purchases;
 
     return purchases.filter((purchase) =>
-      purchase.supplier?.name?.toLowerCase().includes(search.toLowerCase())
+      purchase.supplier?.name?.toLowerCase().includes(search.toLowerCase()),
     );
   }
 
@@ -166,9 +168,7 @@ export class PurchasesService {
           });
 
           if (product && item.package) {
-            const matchingVariant = product.variants.find(
-              (v: any) => v.package === item.package,
-            );
+            const matchingVariant = product.variants.find((v: any) => v.package === item.package);
             if (matchingVariant) {
               await this.stockService.recordMovement(tx, {
                 productVariantId: matchingVariant.id,
@@ -247,18 +247,22 @@ export class PurchasesService {
 
       // Record financial transaction if changing from DRAFT to COMPLETED
       if (!wasCompleted && willBeCompleted) {
-        const totalAmount = dto.items && dto.items.length > 0
-          ? dto.items.reduce((acc, item) => acc + item.totalCost + item.extraCosts, 0)
-          : existingPurchase.totalAmount;
+        const totalAmount =
+          dto.items && dto.items.length > 0
+            ? dto.items.reduce((acc, item) => acc + item.totalCost + item.extraCosts, 0)
+            : existingPurchase.totalAmount;
 
-        await this.financeService.recordTransaction({
-          type: 'EXPENSE',
-          category: 'STOCK_PURCHASE',
-          amount: totalAmount,
-          description: `Pembelian Stok dari Supplier ${existingPurchase.supplierId}`,
-          paymentMethod: 'CASH',
-          referenceId: id,
-        }, tx);
+        await this.financeService.recordTransaction(
+          {
+            type: 'EXPENSE',
+            category: 'STOCK_PURCHASE',
+            amount: totalAmount,
+            description: `Pembelian Stok dari Supplier ${existingPurchase.supplierId}`,
+            paymentMethod: 'CASH',
+            referenceId: id,
+          },
+          tx,
+        );
       }
 
       return {
@@ -291,11 +295,7 @@ export class PurchasesService {
     });
   }
 
-  private async syncProductVariantFromPurchaseItem(
-    tx: any,
-    purchaseId: string,
-    item: any,
-  ) {
+  private async syncProductVariantFromPurchaseItem(tx: any, purchaseId: string, item: any) {
     const product = await tx.query.products.findFirst({
       where: eq(schema.products.id, item.productId),
       with: { variants: true },
@@ -306,9 +306,7 @@ export class PurchasesService {
     }
 
     if (item.package) {
-      const existingVariant = product.variants.find(
-        (v: any) => v.package === item.package,
-      );
+      const existingVariant = product.variants.find((v: any) => v.package === item.package);
 
       const unitCost = item.unitCost || (item.totalCost + item.extraCosts) / item.qty;
 
@@ -320,7 +318,9 @@ export class PurchasesService {
             hpp: Math.round(unitCost),
             sizeInGram: item.sizeInGram || existingVariant.sizeInGram,
             price: item.sellingPrice || existingVariant.price,
-            expiredDate: item.expiredDate ? new Date(item.expiredDate) : existingVariant.expiredDate,
+            expiredDate: item.expiredDate
+              ? new Date(item.expiredDate)
+              : existingVariant.expiredDate,
           })
           .where(eq(schema.productVariants.id, existingVariant.id));
 

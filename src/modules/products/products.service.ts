@@ -26,17 +26,26 @@ export class ProductsService {
     const defaultImage = `${this.storageUrl}/product_default.png`;
     if (!imageUrl || imageUrl.trim() === '') return defaultImage;
     if (imageUrl.startsWith('http')) return imageUrl;
-    
+
     // Handle local uploads
     if (imageUrl.startsWith('uploads/')) {
-      const apiBaseUrl = this.configService.get<string>('NEXT_PUBLIC_API_URL') || 'http://localhost:3001';
+      const apiBaseUrl =
+        this.configService.get<string>('NEXT_PUBLIC_API_URL') || 'http://localhost:3001';
       return `${apiBaseUrl}/${imageUrl}`;
     }
-    
+
     return `${this.storageUrl}/${imageUrl}`;
   }
 
-  async findAll(page: number = 1, limit: number = 10, taste?: string, search?: string, hasStock?: boolean, sortBy?: string, sortOrder: 'asc' | 'desc' = 'desc') {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    taste?: string,
+    search?: string,
+    hasStock?: boolean,
+    sortBy?: string,
+    sortOrder: 'asc' | 'desc' = 'desc',
+  ) {
     const offset = (page - 1) * limit;
 
     let where = undefined;
@@ -44,7 +53,7 @@ export class ProductsService {
     if (taste) {
       const upperTaste = taste.toUpperCase();
       const validTastes = schema.productTasteEnum.enumValues;
-      
+
       if (validTastes.includes(upperTaste as any)) {
         where = sql`${schema.products.taste} @> ARRAY[${upperTaste}]::"ProductTaste"[]`;
       }
@@ -55,7 +64,7 @@ export class ProductsService {
       where = where ? and(where, searchWhere) : searchWhere;
     }
 
-    if (hasStock === true || hasStock === 'true' as any) {
+    if (hasStock === true || hasStock === ('true' as any)) {
       const stockExist = sql`EXISTS (
         SELECT 1 FROM ${schema.productVariants} v 
         WHERE v."productId" = ${schema.products.id} AND v.stock > 0
@@ -68,7 +77,11 @@ export class ProductsService {
       const stockQuery = sql`(SELECT COALESCE(SUM(v.stock), 0) FROM ${schema.productVariants} v WHERE v."productId" = ${schema.products.id})`;
       orderByList.push(sortOrder === 'asc' ? sql`${stockQuery} ASC` : sql`${stockQuery} DESC`);
     } else {
-      orderByList.push(sortOrder === 'asc' ? sql`${schema.products.createdAt} ASC` : sql`${schema.products.createdAt} DESC`);
+      orderByList.push(
+        sortOrder === 'asc'
+          ? sql`${schema.products.createdAt} ASC`
+          : sql`${schema.products.createdAt} DESC`,
+      );
     }
 
     const rawData = await this.db.query.products.findMany({
@@ -83,7 +96,6 @@ export class ProductsService {
       orderBy: orderByList,
     });
 
-
     const data = rawData.map((product) => {
       const normalizedImages = (product.images || []).map((img) => ({
         ...img,
@@ -95,7 +107,7 @@ export class ProductsService {
       const displayImageUrl = primaryImage ? primaryImage.url : this.normalizeImageUrl(null);
 
       // Get latest HPP for each product
-      // Note: In a production environment with large datasets, this should be optimized 
+      // Note: In a production environment with large datasets, this should be optimized
       // with a subquery or a dedicated materialized view for performance.
       return {
         ...product,
@@ -204,7 +216,7 @@ export class ProductsService {
       if (dto.variants && dto.variants.length > 0) {
         const variantValues = [];
         for (const v of dto.variants) {
-          const sku = v.sku || await getNextSkuFromDb(tx);
+          const sku = v.sku || (await getNextSkuFromDb(tx));
           variantValues.push({
             productId: product.id,
             package: v.package,
@@ -239,10 +251,7 @@ export class ProductsService {
       if (dto.taste !== undefined) updateValues.taste = dto.taste;
 
       if (Object.keys(updateValues).length > 0) {
-        await tx
-          .update(schema.products)
-          .set(updateValues)
-          .where(eq(schema.products.id, id));
+        await tx.update(schema.products).set(updateValues).where(eq(schema.products.id, id));
       }
 
       // 2. Remove images if requested
@@ -252,8 +261,8 @@ export class ProductsService {
           .where(
             and(
               eq(schema.productImages.productId, id),
-              inArray(schema.productImages.id, dto.removeImageIds)
-            )
+              inArray(schema.productImages.id, dto.removeImageIds),
+            ),
           );
       }
 
@@ -269,10 +278,7 @@ export class ProductsService {
                 isPrimary: imgDto.isPrimary,
               })
               .where(
-                and(
-                  eq(schema.productImages.id, imgDto.id),
-                  eq(schema.productImages.productId, id)
-                )
+                and(eq(schema.productImages.id, imgDto.id), eq(schema.productImages.productId, id)),
               );
           } else {
             // Add new image
@@ -311,7 +317,16 @@ export class ProductsService {
     return brand;
   }
 
-  async createVariant(productId: string, dto: { package: string; price: number; initialStock?: number; sku?: string; sizeInGram?: number }) {
+  async createVariant(
+    productId: string,
+    dto: {
+      package: string;
+      price: number;
+      initialStock?: number;
+      sku?: string;
+      sizeInGram?: number;
+    },
+  ) {
     return await this.db.transaction(async (tx) => {
       const product = await tx.query.products.findFirst({
         where: eq(schema.products.id, productId),
@@ -321,13 +336,13 @@ export class ProductsService {
         throw new NotFoundException(`Produk dengan ID ${productId} tidak ditemukan`);
       }
 
-      const sku = dto.sku || await getNextSkuFromDb(tx);
+      const sku = dto.sku || (await getNextSkuFromDb(tx));
 
       const [variant] = await tx
         .insert(schema.productVariants)
         .values({
           productId,
-          package: dto.package as typeof schema.productVariantLabelEnum.enumValues[number],
+          package: dto.package as (typeof schema.productVariantLabelEnum.enumValues)[number],
           price: dto.price,
           stock: dto.initialStock ?? 0,
           sku,

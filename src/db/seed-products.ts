@@ -79,36 +79,38 @@ function parseCsv(filePath: string): CsvProductRow[] {
   const lines = content.trim().split('\n');
   const dataLines = lines.slice(1);
 
-  return dataLines.map((line) => {
-    const cols = parseCsvLine(line);
-    return {
-      no: cols[0] || '',
-      updatedDate: cols[1] || '',
-      namaBarang: cols[2] || '',
-      brand: cols[3] || '',
-      supplier: cols[4] || '',
-      kgPerBal: parseNumber(cols[5] || '') ?? 0,
-      hargaPokok: parseCurrency(cols[6] || '') ?? 0,
-      pokokPerKg: parseCurrency(cols[7] || '') ?? 0,
-      balPrice: parseCurrency(cols[9] || ''),
-      balMargin: parseNumber(cols[8] || ''),
-      oneKgPrice: parseCurrency(cols[11] || ''),
-      oneKgMargin: parseNumber(cols[10] || ''),
-      fiveHundredGrPrice: parseCurrency(cols[13] || ''),
-      fiveHundredGrMargin: parseNumber(cols[12] || ''),
-      twoFiftyGrPrice: parseCurrency(cols[15] || ''),
-      twoFiftyGrMargin: parseNumber(cols[14] || ''),
-      grPer10rb: parseNumber(cols[16] || ''),
-      grPer10rbMargin: parseNumber(cols[17] || ''),
-      grPer5rb: parseNumber(cols[18] || ''),
-      grPer5rbMargin: parseNumber(cols[19] || ''),
-    };
-  }).filter((row) => row.namaBarang !== '');
+  return dataLines
+    .map((line) => {
+      const cols = parseCsvLine(line);
+      return {
+        no: cols[0] || '',
+        updatedDate: cols[1] || '',
+        namaBarang: cols[2] || '',
+        brand: cols[3] || '',
+        supplier: cols[4] || '',
+        kgPerBal: parseNumber(cols[5] || '') ?? 0,
+        hargaPokok: parseCurrency(cols[6] || '') ?? 0,
+        pokokPerKg: parseCurrency(cols[7] || '') ?? 0,
+        balPrice: parseCurrency(cols[9] || ''),
+        balMargin: parseNumber(cols[8] || ''),
+        oneKgPrice: parseCurrency(cols[11] || ''),
+        oneKgMargin: parseNumber(cols[10] || ''),
+        fiveHundredGrPrice: parseCurrency(cols[13] || ''),
+        fiveHundredGrMargin: parseNumber(cols[12] || ''),
+        twoFiftyGrPrice: parseCurrency(cols[15] || ''),
+        twoFiftyGrMargin: parseNumber(cols[14] || ''),
+        grPer10rb: parseNumber(cols[16] || ''),
+        grPer10rbMargin: parseNumber(cols[17] || ''),
+        grPer5rb: parseNumber(cols[18] || ''),
+        grPer5rbMargin: parseNumber(cols[19] || ''),
+      };
+    })
+    .filter((row) => row.namaBarang !== '');
 }
 
 function calculateHpp(price: number, marginPct: number | null): number {
   if (!marginPct || price <= 0) return 0;
-  return Math.floor(price * (100 - marginPct) / 100);
+  return Math.floor((price * (100 - marginPct)) / 100);
 }
 
 function formatSku(counter: number): string {
@@ -186,7 +188,9 @@ async function seedProducts() {
       const existingProduct = await db.query.products.findFirst({
         where: and(
           eq(schema.products.name, row.namaBarang),
-          brandId ? eq(schema.products.brandId, brandId) : eq(schema.products.brandId, null as unknown as string),
+          brandId
+            ? eq(schema.products.brandId, brandId)
+            : eq(schema.products.brandId, null as unknown as string),
         ),
       });
 
@@ -215,9 +219,19 @@ async function seedProducts() {
         margin: number | null;
         sizeInGram: number | null;
       }> = [
-        { pkg: 'bal', price: row.balPrice, margin: row.balMargin, sizeInGram: row.kgPerBal > 0 ? Math.round(row.kgPerBal * 1000) : null },
+        {
+          pkg: 'bal',
+          price: row.balPrice,
+          margin: row.balMargin,
+          sizeInGram: row.kgPerBal > 0 ? Math.round(row.kgPerBal * 1000) : null,
+        },
         { pkg: '1kg', price: row.oneKgPrice, margin: row.oneKgMargin, sizeInGram: 1000 },
-        { pkg: '500gr', price: row.fiveHundredGrPrice, margin: row.fiveHundredGrMargin, sizeInGram: 500 },
+        {
+          pkg: '500gr',
+          price: row.fiveHundredGrPrice,
+          margin: row.fiveHundredGrMargin,
+          sizeInGram: 500,
+        },
         { pkg: '250gr', price: row.twoFiftyGrPrice, margin: row.twoFiftyGrMargin, sizeInGram: 250 },
         { pkg: 'Small', price: 10000, margin: row.grPer10rbMargin, sizeInGram: row.grPer10rb },
         { pkg: 'Medium', price: 5000, margin: row.grPer5rbMargin, sizeInGram: row.grPer5rb },
@@ -235,7 +249,10 @@ async function seedProducts() {
         const existingVariant = await db.query.productVariants.findFirst({
           where: and(
             eq(schema.productVariants.productId, productId),
-            eq(schema.productVariants.package, vDef.pkg as typeof schema.productVariantLabelEnum.enumValues[number]),
+            eq(
+              schema.productVariants.package,
+              vDef.pkg as (typeof schema.productVariantLabelEnum.enumValues)[number],
+            ),
           ),
         });
 
@@ -253,7 +270,7 @@ async function seedProducts() {
           await db.insert(schema.productVariants).values({
             id: crypto.randomUUID(),
             productId,
-            package: vDef.pkg as typeof schema.productVariantLabelEnum.enumValues[number],
+            package: vDef.pkg as (typeof schema.productVariantLabelEnum.enumValues)[number],
             price: vDef.price,
             hpp,
             stock: 0,

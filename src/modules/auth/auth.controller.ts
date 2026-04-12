@@ -1,4 +1,14 @@
-import { Controller, Post, Body, Get, Query, Res, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Query,
+  Res,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoginRequestDto } from './dto/login-request.dto';
@@ -15,7 +25,10 @@ export class AuthController {
   @Post('request-login')
   @ApiOperation({ summary: 'Request a magic link for login' })
   @ApiBody({ type: LoginRequestDto })
-  @ApiResponse({ status: 201, description: 'Magic link request handled. Generic message returned for security.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Magic link request handled. Generic message returned for security.',
+  })
   async requestLogin(@Body() loginDto: LoginRequestDto) {
     return this.authService.requestLogin(loginDto.identifier);
   }
@@ -24,12 +37,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify magic link token and return JWT' })
   @ApiResponse({ status: 200, description: 'Token verified successfully' })
   @ApiResponse({ status: 401, description: 'Invalid or expired token' })
-  async verifyLogin(
-    @Query('token') token: string,
-    @Res({ passthrough: true }) res: Response
-  ) {
+  async verifyLogin(@Query('token') token: string, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.verifyLogin(token);
-    
+
     // Set refresh token in httpOnly cookie
     res.cookie('refresh_token', result.refresh_token, {
       httpOnly: true,
@@ -50,12 +60,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token using refresh token cookie' })
   @ApiResponse({ status: 201, description: 'New access token issued' })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
-  async refresh(
-    @Req() req: ExpressRequest,
-    @Res({ passthrough: true }) res: Response
-  ) {
+  async refresh(@Req() req: ExpressRequest, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies['refresh_token'];
-    
+
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token missing');
     }
@@ -82,12 +89,9 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and clear refresh token' })
   @ApiResponse({ status: 201, description: 'Logged out successfully' })
-  async logout(
-    @Req() req: any,
-    @Res({ passthrough: true }) res: Response
-  ) {
+  async logout(@Req() req: any, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies['refresh_token'];
-    
+
     if (refreshToken) {
       await this.authService.logout(refreshToken);
     }
