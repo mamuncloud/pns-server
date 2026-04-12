@@ -3,6 +3,7 @@ import {
   Post,
   Body,
   Get,
+  Patch,
   Param,
   NotFoundException,
   Query,
@@ -13,6 +14,7 @@ import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiQuery } from '@ne
 import { JwtService } from '@nestjs/jwt';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -40,7 +42,7 @@ export class OrdersController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new order (Public for QRIS, Staff-only for Cash)' })
+  @ApiOperation({ summary: 'Create a new order (Public for MAYAR PRE_ORDER, Staff-only for WALK_IN)' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
   async create(@Body() createOrderDto: CreateOrderDto, @Req() req: any) {
     // Manually extract and verify JWT if present
@@ -92,6 +94,16 @@ export class OrdersController {
   @ApiResponse({ status: 200, description: 'Summary retrieved successfully' })
   async getSummary() {
     return this.ordersService.getDashboardSummary();
+  }
+
+  @Patch(':id/status')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ANY_EMPLOYEE')
+  @ApiOperation({ summary: 'Update order status (PAID→READY, READY→COMPLETED, any→CANCELLED)' })
+  @ApiResponse({ status: 200, description: 'Order status updated successfully' })
+  async updateStatus(@Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
+    return this.ordersService.updateStatus(id, dto.status);
   }
 
   @Get(':id')

@@ -155,11 +155,17 @@ export class FinanceService {
     const cashExpense = Number(
       paymentSummary.find((r) => r.method === 'CASH' && r.type === 'EXPENSE')?.total || 0,
     );
-    const qrisIncome = Number(
-      paymentSummary.find((r) => r.method === 'QRIS' && r.type === 'INCOME')?.total || 0,
+    const edcBcaIncome = Number(
+      paymentSummary.find((r) => r.method === 'EDC_BCA' && r.type === 'INCOME')?.total || 0,
     );
-    const qrisExpense = Number(
-      paymentSummary.find((r) => r.method === 'QRIS' && r.type === 'EXPENSE')?.total || 0,
+    const edcBcaExpense = Number(
+      paymentSummary.find((r) => r.method === 'EDC_BCA' && r.type === 'EXPENSE')?.total || 0,
+    );
+    const mayarIncome = Number(
+      paymentSummary.find((r) => r.method === 'MAYAR' && r.type === 'INCOME')?.total || 0,
+    );
+    const mayarExpense = Number(
+      paymentSummary.find((r) => r.method === 'MAYAR' && r.type === 'EXPENSE')?.total || 0,
     );
 
     return {
@@ -173,7 +179,9 @@ export class FinanceService {
         .from(schema.financialTransactions)
         .then((r) => Number(r[0].count)),
       cashBalance: cashIncome - cashExpense,
-      qrisBalance: qrisIncome - qrisExpense,
+      edcBcaBalance: edcBcaIncome - edcBcaExpense,
+      mayarBalance: mayarIncome - mayarExpense,
+      qrisBalance: (edcBcaIncome + mayarIncome) - (edcBcaExpense + mayarExpense), // backward compat
     };
   }
 }
