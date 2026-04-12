@@ -63,7 +63,7 @@ export class ProductsService {
       where = where ? and(where, stockExist) : stockExist;
     }
 
-    let orderByList: any[] = [];
+    const orderByList: any[] = [];
     if (sortBy === 'stock') {
       const stockQuery = sql`(SELECT COALESCE(SUM(v.stock), 0) FROM ${schema.productVariants} v WHERE v."productId" = ${schema.products.id})`;
       orderByList.push(sortOrder === 'asc' ? sql`${stockQuery} ASC` : sql`${stockQuery} DESC`);

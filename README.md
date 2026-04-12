@@ -77,3 +77,21 @@ sequenceDiagram
     Note right of Backend: Updates refresh_token cookie
     Frontend->>Backend: Retry original GET /api/protected
 ```
+
+## 🛠 Development Utilities
+
+### Testing Mayar Webhook
+To test the QRIS payment webhook locally, use the following `curl` command. Replace `YOUR_TRANSACTION_ID` with a `providerTransactionId` from a PENDING payment record in your database.
+
+```bash
+curl -X POST http://localhost:3001/payment/webhook/mayar \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "payment.received",
+    "data": {
+      "id": "YOUR_TRANSACTION_ID",
+      "status": "SUCCESS",
+      "amount": 5000
+    }
+  }'
+```

@@ -50,6 +50,15 @@ export const transactionCategoryEnum = pgEnum("TransactionCategory", [
   "ADJUSTMENT",
 ]);
 
+export const paymentStatusEnum = pgEnum("PaymentStatus", [
+  "PENDING",
+  "PAID",
+  "FAILED",
+  "EXPIRED",
+]);
+
+export const paymentProviderEnum = pgEnum("PaymentProvider", ["MAYAR", "CASH"]);
+
 // Tables
 export const users = pgTable("users", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -151,6 +160,8 @@ export const productVariants = pgTable("product_variants", {
 export const orders = pgTable("orders", {
   id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: varchar("userId", { length: 255 }).references(() => users.id),
+  customerName: varchar("customerName", { length: 255 }),
+  customerPhone: varchar("customerPhone", { length: 255 }),
   orderType: orderTypeEnum("orderType").notNull(),
   totalAmount: integer("totalAmount").notNull(),
   status: orderStatusEnum("status").default("PENDING").notNull(),
@@ -158,6 +169,7 @@ export const orders = pgTable("orders", {
   paidAmount: integer("paidAmount").default(0).notNull(),
   changeAmount: integer("changeAmount").default(0).notNull(),
   qrCode: text("qrCode"),
+  paymentUrl: text("paymentUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -175,6 +187,26 @@ export const orderItems = pgTable("order_items", {
     .notNull(),
   quantity: integer("quantity").notNull(),
   price: integer("price").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const payments = pgTable("payments", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  orderId: varchar("orderId", { length: 255 })
+    .references(() => orders.id, { onDelete: "cascade" })
+    .notNull(),
+  provider: paymentProviderEnum("provider").notNull().default("MAYAR"),
+  status: paymentStatusEnum("status").notNull().default("PENDING"),
+  amount: integer("amount").notNull(),
+  paymentUrl: text("paymentUrl"),
+  providerInvoiceId: varchar("providerInvoiceId", { length: 255 }),
+  providerTransactionId: varchar("providerTransactionId", { length: 255 }),
+  paidAt: timestamp("paidAt"),
+  expiresAt: timestamp("expiresAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -381,6 +413,14 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     references: [users.id],
   }),
   items: many(orderItems),
+  payments: many(payments),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  order: one(orders, {
+    fields: [payments.orderId],
+    references: [orders.id],
+  }),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({

@@ -2,7 +2,7 @@ import { Controller, Post, Body, Get, Query, Res, Req, UnauthorizedException, Us
 import { AuthService } from './auth.service';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoginRequestDto } from './dto/login-request.dto';
-import { Response, Request as ExpressRequest } from 'express';
+import type { Response, Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
