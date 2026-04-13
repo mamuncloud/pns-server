@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PAYMENT_EVENTS, PaymentSatisfiedEvent, PaymentLinkGeneratedEvent } from '../payment/events/payment.events';
+import { ORDER_EVENTS, OrderReadyEvent } from '../orders/events/order.events';
+
 
 @Injectable()
 export class WhatsAppService {
@@ -188,5 +190,44 @@ _Abaikan pesan ini jika Anda sudah melakukan pembayaran._`;
       this.logger.error(`Error sending WhatsApp message to ${originalPhone}: ${error.message}`);
       return { success: false, error: error.message };
     }
+  }
+
+  @OnEvent(ORDER_EVENTS.READY)
+  async handleOrderReady(event: OrderReadyEvent) {
+    this.logger.log(`Handling order.ready for order ${event.orderId}`);
+
+    await this.sendOrderReadyMessage(
+      event.customerPhone,
+      event.customerName,
+      event.orderId,
+    );
+  }
+
+  async sendOrderReadyMessage(
+    phone: string,
+    customerName: string,
+    orderId: string,
+  ) {
+    if (!this.deviceId) {
+      this.logger.warn('WA_DEVICE_ID is not defined. WhatsApp message will not be sent.');
+      return;
+    }
+
+    if (!phone) {
+      this.logger.warn(`Phone number for ${customerName} is empty. Skipping WhatsApp message.`);
+      return;
+    }
+
+    const formattedPhone = this.formatPhone(phone);
+    const shortOrderId = orderId.split('-')[0].toUpperCase();
+
+    const message = `*Planet Nyemil Snack* 🍪
+Halo *${customerName}*! 🎉
+
+Pesanan Anda dengan nomor *#${shortOrderId}* sudah *SIAP DIAMBIL*. 📦✨
+
+Terima kasih telah berbelanja di Planet Nyemil! 🙏`;
+
+    return this.sendRawMessage(formattedPhone, message, phone);
   }
 }
