@@ -17,6 +17,7 @@ import { PaymentService } from '../payment/payment.service';
 import { StoreSettingsService } from '../store-settings/store-settings.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PAYMENT_EVENTS, PaymentLinkGeneratedEvent } from '../payment/events/payment.events';
+import { ORDER_EVENTS, OrderReadyEvent } from './events/order.events';
 
 @Injectable()
 export class OrdersService {
@@ -370,6 +371,13 @@ export class OrdersService {
       .where(eq(schema.orders.id, orderId));
 
     this.logger.log(`Order ${orderId} status updated: ${order.status} → ${newStatus}`);
+
+    if (order.status === 'PAID' && newStatus === 'READY') {
+      this.eventEmitter.emit(
+        ORDER_EVENTS.READY,
+        new OrderReadyEvent(orderId, order.customerName || 'Customer', order.customerPhone || ''),
+      );
+    }
 
     return {
       message: `Status pesanan berhasil diubah ke ${newStatus}`,
