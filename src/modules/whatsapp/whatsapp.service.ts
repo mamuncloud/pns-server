@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
-import { PAYMENT_EVENTS, PaymentSatisfiedEvent } from '../payment/events/payment.events';
+import { PAYMENT_EVENTS, PaymentSatisfiedEvent, PaymentLinkGeneratedEvent } from '../payment/events/payment.events';
 
 @Injectable()
 export class WhatsAppService {
@@ -69,6 +69,19 @@ _If you did not request this link, please ignore this message._`;
       event.customerName,
       event.orderId,
       orderUrl,
+    );
+  }
+
+  @OnEvent(PAYMENT_EVENTS.LINK_GENERATED)
+  async handlePaymentLinkGenerated(event: PaymentLinkGeneratedEvent) {
+    this.logger.log(`Handling payment.link_generated for order ${event.orderId}`);
+
+    await this.sendPaymentLink(
+      event.customerPhone,
+      event.paymentUrl,
+      event.orderId,
+      event.amount,
+      event.customerName,
     );
   }
 

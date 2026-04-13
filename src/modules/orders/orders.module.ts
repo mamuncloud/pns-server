@@ -4,7 +4,6 @@ import { OrdersController } from './orders.controller';
 import { StockModule } from '../stock/stock.module';
 import { PaymentModule } from '../payment/payment.module';
 import { AuthModule } from '../auth/auth.module';
-import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { StoreSettingsModule } from '../store-settings/store-settings.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -14,7 +13,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     StockModule,
     PaymentModule,
     AuthModule,
-    WhatsAppModule,
     StoreSettingsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

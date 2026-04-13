@@ -14,8 +14,9 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { StockService } from '../stock/stock.service';
 import { FinanceService } from '../finance/finance.service';
 import { PaymentService } from '../payment/payment.service';
-import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { StoreSettingsService } from '../store-settings/store-settings.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { PAYMENT_EVENTS, PaymentLinkGeneratedEvent } from '../payment/events/payment.events';
 
 @Injectable()
 export class OrdersService {
@@ -27,8 +28,8 @@ export class OrdersService {
     private readonly stockService: StockService,
     private readonly financeService: FinanceService,
     private readonly paymentService: PaymentService,
-    private readonly whatsappService: WhatsAppService,
     private readonly storeSettingsService: StoreSettingsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -196,17 +197,16 @@ export class OrdersService {
           order.paymentUrl = invoiceResult.directPaymentUrl;
 
           // Send WhatsApp notification in background
-          this.whatsappService
-            .sendPaymentLink(
-              dto.customerPhone,
-              invoiceResult.directPaymentUrl,
+          this.eventEmitter.emit(
+            PAYMENT_EVENTS.LINK_GENERATED,
+            new PaymentLinkGeneratedEvent(
               order.id,
-              totalAmount,
               dto.customerName || dto.customerPhone,
+              dto.customerPhone,
+              totalAmount,
+              invoiceResult.directPaymentUrl,
             )
-            .catch((err) =>
-              this.logger.error(`Failed to send WhatsApp notification: ${err.message}`),
-            );
+          );
         } catch (error: any) {
           const errorMessage = error.message;
           this.logger.error(`Mayar invoice generation failed: ${errorMessage}`);
