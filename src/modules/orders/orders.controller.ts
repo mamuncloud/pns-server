@@ -131,4 +131,14 @@ export class OrdersController {
     }
     return order;
   }
+
+  @Post('bulk-delete-stale')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('MANAGER')
+  @ApiOperation({ summary: 'Bulk delete stale (PENDING & EXPIRED) orders' })
+  @ApiResponse({ status: 200, description: 'Stale orders deleted successfully' })
+  async deleteStale() {
+    return this.ordersService.bulkDeleteStaleOrders();
+  }
 }
