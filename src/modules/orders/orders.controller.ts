@@ -18,6 +18,7 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -73,10 +74,21 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ANY_EMPLOYEE')
   @ApiOperation({ summary: 'Get all orders' })
-  @ApiQuery({ name: 'search', required: false, description: 'Search orders by user name' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search orders by customer name, phone, or ID' })
   @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
-  async findAll(@Query('search') search?: string) {
-    return this.ordersService.findAll(search);
+  async findAll(@Query() query: PaginationQueryDto) {
+    const { page, limit, search } = query;
+    const { data, totalItems } = await this.ordersService.findAll(page, limit, search);
+    return {
+      message: 'Berhasil mengambil semua pesanan',
+      data,
+      meta: {
+        page,
+        limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+      },
+    };
   }
 
   @Get('public/:id')

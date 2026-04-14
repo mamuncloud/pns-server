@@ -9,7 +9,7 @@ import {
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, or, like } from 'drizzle-orm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { StockService } from '../stock/stock.service';
 import { FinanceService } from '../finance/finance.service';
@@ -242,8 +242,21 @@ export class OrdersService {
     return user ? { name: user.name } : null;
   }
 
-  async findAll(search?: string) {
-    const orders = await this.db.query.orders.findMany({
+  async findAll(page: number = 1, limit: number = 10, search?: string) {
+    const offset = (page - 1) * limit;
+
+    const where = search
+      ? or(
+          like(schema.orders.customerName, `%${search}%`),
+          like(schema.orders.customerPhone, `%${search}%`),
+          like(schema.orders.id, `%${search}%`),
+        )
+      : undefined;
+
+    const data = await this.db.query.orders.findMany({
+      where,
+      limit,
+      offset,
       with: {
         user: true,
         items: {
@@ -258,9 +271,16 @@ export class OrdersService {
       orderBy: (orders, { desc }) => [desc(orders.createdAt)],
     });
 
-    if (!search) return orders;
+    const totalItemsResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.orders)
+      .where(where);
+    const totalItems = Number(totalItemsResult[0].count);
 
-    return orders.filter((order) => order.user?.name?.toLowerCase().includes(search.toLowerCase()));
+    return {
+      data,
+      totalItems,
+    };
   }
 
   async findOne(id: string) {
