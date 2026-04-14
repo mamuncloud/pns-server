@@ -425,4 +425,44 @@ export class OrdersService {
       preOrderRevenue: Number(stats.preOrderRevenue),
     };
   }
+
+  /**
+   * Bulk delete "stale" orders.
+   * Stale orders are:
+   * 1. Status is 'PENDING' AND payment is missing or expired.
+   * OR
+   * 2. Any order where the payment status is explicitly 'EXPIRED'.
+   */
+  async bulkDeleteStaleOrders() {
+    const now = new Date();
+
+    // Find orders where status is PENDING and payment is expired or missing
+    const staleOrders = await this.db.query.orders.findMany({
+      where: eq(schema.orders.status, 'PENDING'),
+      with: { payments: true },
+    });
+
+    const idsToDelete = staleOrders
+      .filter((order) => {
+        // If no payment record exists, it's stale (orphaned)
+        if (!order.payments || order.payments.length === 0) return true;
+
+        // If any payment is expired
+        return order.payments.some(
+          (p) => p.status === 'EXPIRED' || (p.expiresAt && new Date(p.expiresAt) < now),
+        );
+      })
+      .map((o) => o.id);
+
+    if (idsToDelete.length === 0) {
+      return { message: 'Tidak ada pesanan usang yang ditemukan', deletedCount: 0 };
+    }
+
+    await this.db.delete(schema.orders).where(sql`${schema.orders.id} IN ${idsToDelete}`);
+ 
+    return {
+      message: `Berhasil menghapus ${idsToDelete.length} pesanan usang`,
+      deletedCount: idsToDelete.length,
+    };
+  }
 }
