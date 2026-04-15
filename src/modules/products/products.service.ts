@@ -45,6 +45,7 @@ export class ProductsService {
     hasStock?: boolean,
     sortBy?: string,
     sortOrder: 'asc' | 'desc' = 'desc',
+    eventId?: string,
   ) {
     const offset = (page - 1) * limit;
 
@@ -64,7 +65,14 @@ export class ProductsService {
       where = where ? and(where, searchWhere) : searchWhere;
     }
 
-    if (hasStock === true || hasStock === ('true' as any)) {
+    if (eventId) {
+      const eventItemExist = sql`EXISTS (
+        SELECT 1 FROM ${schema.eventItems} ei 
+        JOIN ${schema.productVariants} v ON ei."productVariantId" = v.id
+        WHERE v."productId" = ${schema.products.id} AND ei."eventId" = ${eventId}
+      )`;
+      where = where ? and(where, eventItemExist) : eventItemExist;
+    } else if (hasStock === true || hasStock === ('true' as any)) {
       const stockExist = sql`EXISTS (
         SELECT 1 FROM ${schema.productVariants} v 
         WHERE v."productId" = ${schema.products.id} AND v.stock > 0
@@ -89,28 +97,49 @@ export class ProductsService {
       offset,
       where,
       with: {
-        variants: true,
+        variants: eventId
+          ? {
+              with: {
+                eventItems: {
+                  where: eq(schema.eventItems.eventId, eventId),
+                },
+              },
+            }
+          : true,
         brand: true,
         images: true,
       },
       orderBy: orderByList,
     });
 
-    const data = rawData.map((product) => {
-      const normalizedImages = (product.images || []).map((img) => ({
+    const data = rawData.map((product: any) => {
+      const normalizedImages = (product.images || []).map((img: any) => ({
         ...img,
         url: this.normalizeImageUrl(img.url),
       }));
 
-      // Find primary image or first available
-      const primaryImage = normalizedImages.find((img) => img.isPrimary) || normalizedImages[0];
+      const primaryImage = normalizedImages.find((img: any) => img.isPrimary) || normalizedImages[0];
       const displayImageUrl = primaryImage ? primaryImage.url : this.normalizeImageUrl(null);
 
-      // Get latest HPP for each product
-      // Note: In a production environment with large datasets, this should be optimized
-      // with a subquery or a dedicated materialized view for performance.
+      // Important: If eventId is provided, override variant stock with event item stock
+      const variants = (product.variants || []).map((v: any) => {
+        if (eventId && v.eventItems && v.eventItems.length > 0) {
+          return {
+            ...v,
+            stock: v.eventItems[0].stock,
+          };
+        }
+        return v;
+      });
+
+      // Filter out variants that don't belong to the event if eventId is present
+      const filteredVariants = eventId
+        ? variants.filter((v: any) => v.eventItems && v.eventItems.length > 0)
+        : variants;
+
       return {
         ...product,
+        variants: filteredVariants,
         images: normalizedImages,
         imageUrl: displayImageUrl,
       };

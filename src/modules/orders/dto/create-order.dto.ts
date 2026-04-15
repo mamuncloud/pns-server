@@ -56,6 +56,11 @@ export class CreateOrderDto {
   @IsOptional()
   paidAmount?: number;
 
+  @ApiProperty({ example: 'uuid-event-123', required: false })
+  @IsOptional()
+  @IsUUID()
+  eventId?: string;
+
   @ApiProperty({ example: 'Budi Santoso', required: false })
   @IsOptional()
   customerName?: string;

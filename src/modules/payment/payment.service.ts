@@ -2,7 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { StockService } from '../stock/stock.service';
 import { FinanceService } from '../finance/finance.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -207,13 +207,37 @@ export class PaymentService {
 
       // Deduct stock per item
       for (const item of order.items) {
-        await this.stockService.recordMovement(tx, {
-          productVariantId: item.productVariantId,
-          type: 'SALE',
-          quantity: -item.quantity,
-          referenceId: order.id,
-          note: 'Penjualan MAYAR (Mayar Webhook)',
-        });
+        if (order.eventId) {
+          // Deduct from Event Stock bucket
+          const [eventItem] = await tx
+            .select()
+            .from(schema.eventItems)
+            .where(
+              and(
+                eq(schema.eventItems.eventId, order.eventId),
+                eq(schema.eventItems.productVariantId, item.productVariantId),
+              ),
+            )
+            .limit(1);
+
+          if (eventItem) {
+            await tx
+              .update(schema.eventItems)
+              .set({ stock: Math.max(0, eventItem.stock - item.quantity) })
+              .where(eq(schema.eventItems.id, eventItem.id));
+          }
+          // Note: We don't record movement in StockService here because the stock 
+          // was already deducted from main warehouse during EVENT_ALLOCATION.
+        } else {
+          // Deduct from Main Stock
+          await this.stockService.recordMovement(tx, {
+            productVariantId: item.productVariantId,
+            type: 'SALE',
+            quantity: -item.quantity,
+            referenceId: order.id,
+            note: 'Penjualan MAYAR (Mayar Webhook)',
+          });
+        }
       }
 
       // Record income

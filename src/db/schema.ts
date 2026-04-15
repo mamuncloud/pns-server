@@ -35,6 +35,8 @@ export const stockMovementTypeEnum = pgEnum('StockMovementType', [
   'REPACK_TARGET',
   'ADJUSTMENT',
   'RETURN',
+  'EVENT_ALLOCATION',
+  'EVENT_RETURN',
 ]);
 
 export const paymentMethodEnum = pgEnum('PaymentMethod', ['CASH', 'EDC_BCA', 'MAYAR']);
@@ -52,6 +54,8 @@ export const transactionCategoryEnum = pgEnum('TransactionCategory', [
 export const paymentStatusEnum = pgEnum('PaymentStatus', ['PENDING', 'PAID', 'FAILED', 'EXPIRED']);
 
 export const paymentProviderEnum = pgEnum('PaymentProvider', ['MAYAR', 'CASH']);
+
+export const eventStatusEnum = pgEnum('EventStatus', ['OPEN', 'CLOSED']);
 
 // Tables
 export const users = pgTable('users', {
@@ -170,6 +174,7 @@ export const orders = pgTable('orders', {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   userId: varchar('userId', { length: 255 }).references(() => users.id),
+  eventId: varchar('eventId', { length: 255 }).references(() => events.id),
   customerName: varchar('customerName', { length: 255 }),
   customerPhone: varchar('customerPhone', { length: 255 }),
   orderType: orderTypeEnum('orderType').notNull(),
@@ -369,6 +374,39 @@ export const repackItems = pgTable('repack_items', {
   createdAt: timestamp('createdAt').defaultNow().notNull(),
 });
 
+export const events = pgTable('events', {
+  id: varchar('id', { length: 255 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: varchar('name', { length: 255 }).notNull(),
+  type: varchar('type', { length: 255 }).notNull(), // e.g., "Donation", "Exhibition"
+  description: text('description'),
+  status: eventStatusEnum('status').default('OPEN').notNull(),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt')
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const eventItems = pgTable('event_items', {
+  id: varchar('id', { length: 255 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  eventId: varchar('eventId', { length: 255 })
+    .references(() => events.id, { onDelete: 'cascade' })
+    .notNull(),
+  productVariantId: varchar('productVariantId', { length: 255 })
+    .references(() => productVariants.id)
+    .notNull(),
+  stock: integer('stock').default(0).notNull(),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt')
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
@@ -434,12 +472,17 @@ export const productVariantsRelations = relations(productVariants, ({ one, many 
   repacksAsSource: many(repacks),
   repacksAsTarget: many(repackItems),
   stockMovements: many(stockMovements),
+  eventItems: many(eventItems),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   user: one(users, {
     fields: [orders.userId],
     references: [users.id],
+  }),
+  event: one(events, {
+    fields: [orders.eventId],
+    references: [events.id],
   }),
   items: many(orderItems),
   payments: many(payments),
@@ -593,5 +636,21 @@ export const financialTransactionsRelations = relations(financialTransactions, (
   employee: one(employees, {
     fields: [financialTransactions.employeeId],
     references: [employees.id],
+  }),
+}));
+
+export const eventsRelations = relations(events, ({ many }) => ({
+  items: many(eventItems),
+  orders: many(orders),
+}));
+
+export const eventItemsRelations = relations(eventItems, ({ one }) => ({
+  event: one(events, {
+    fields: [eventItems.eventId],
+    references: [events.id],
+  }),
+  productVariant: one(productVariants, {
+    fields: [eventItems.productVariantId],
+    references: [productVariants.id],
   }),
 }));
