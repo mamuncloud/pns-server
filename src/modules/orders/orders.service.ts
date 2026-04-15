@@ -9,7 +9,7 @@ import {
 import { DRIZZLE_DB } from '../../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
-import { eq, sql, or, like } from 'drizzle-orm';
+import { eq, sql, or, like, and } from 'drizzle-orm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { StockService } from '../stock/stock.service';
 import { FinanceService } from '../finance/finance.service';
@@ -88,11 +88,23 @@ export class OrdersService {
         }
       }
 
-      // 2. Calculate total
+      // 2. Check Event context
+      if (dto.eventId) {
+        const event = await tx.query.events.findFirst({
+          where: eq(schema.events.id, dto.eventId),
+        });
+        if (!event) throw new NotFoundException('Event tidak ditemukan');
+        if (event.status === 'CLOSED') throw new BadRequestException('Event sudah ditutup');
+        if (dto.paymentMethod !== 'MAYAR') {
+          throw new BadRequestException('Penjualan event hanya diperbolehkan menggunakan Mayar QRIS');
+        }
+      }
+
+      // 3. Calculate total
       const totalAmount = dto.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-      // 2. Status: PRE_ORDER (MAYAR) starts PENDING; WALK_IN goes straight to COMPLETED
-      const isPreOrder = dto.orderType === 'PRE_ORDER';
+      // 4. Status: PRE_ORDER (MAYAR) or Event (MAYAR) starts PENDING; WALK_IN goes straight to COMPLETED
+      const isPreOrder = dto.orderType === 'PRE_ORDER' || !!dto.eventId;
       const paidAmount = isPreOrder ? 0 : dto.paidAmount || 0;
       const changeAmount = isPreOrder ? 0 : Math.max(0, paidAmount - totalAmount);
       const status = isPreOrder ? 'PENDING' : 'COMPLETED';
@@ -102,6 +114,7 @@ export class OrdersService {
         .insert(schema.orders)
         .values({
           userId: customerId, // Linked to the identified/created customer
+          eventId: dto.eventId,
           customerName: dto.customerName,
           customerPhone: dto.customerPhone,
           orderType: dto.orderType as any,
@@ -113,14 +126,35 @@ export class OrdersService {
         })
         .returning();
 
-      // 4. Create order items
+      // 5. Create order items & Validate stock
       for (const item of dto.items) {
-        const variant = await tx.query.productVariants.findFirst({
-          where: eq(schema.productVariants.id, item.productVariantId),
-        });
+        if (dto.eventId) {
+          // Check event stock
+          const eventItem = await tx.query.eventItems.findFirst({
+            where: and(
+              eq(schema.eventItems.eventId, dto.eventId),
+              eq(schema.eventItems.productVariantId, item.productVariantId),
+            ),
+          });
 
-        if (!variant) {
-          throw new NotFoundException(`Varian produk ${item.productVariantId} tidak ditemukan`);
+          if (!eventItem || eventItem.stock < item.quantity) {
+            throw new BadRequestException(
+              `Stok event tidak mencukupi untuk varian ${item.productVariantId}. Tersedia: ${eventItem?.stock || 0}`,
+            );
+          }
+        } else {
+          // Check main stock
+          const variant = await tx.query.productVariants.findFirst({
+            where: eq(schema.productVariants.id, item.productVariantId),
+          });
+
+          if (!variant) {
+            throw new NotFoundException(`Varian produk ${item.productVariantId} tidak ditemukan`);
+          }
+
+          if (variant.stock < item.quantity && !isPreOrder) {
+            throw new BadRequestException(`Stok varian ${item.productVariantId} tidak mencukupi`);
+          }
         }
 
         await tx.insert(schema.orderItems).values({
@@ -130,15 +164,37 @@ export class OrdersService {
           price: item.price,
         });
 
-        // For WALK_IN only: deduct stock immediately
+        // Deduct stock immediately for WALK_IN orders
         if (!isPreOrder) {
-          await this.stockService.recordMovement(tx, {
-            productVariantId: item.productVariantId,
-            type: 'SALE',
-            quantity: -item.quantity,
-            referenceId: order.id,
-            note: `Penjualan ${dto.paymentMethod}`,
-          });
+          if (dto.eventId) {
+            // Deduct from event bucket only.
+            // Main warehouse stock (product_variants.stock) remains unchanged until
+            // the event stock is explicitly returned via POST /events/:id/return.
+            const eventItem = await tx.query.eventItems.findFirst({
+              where: and(
+                eq(schema.eventItems.eventId, dto.eventId),
+                eq(schema.eventItems.productVariantId, item.productVariantId),
+              ),
+            });
+
+            if (!eventItem || eventItem.stock < item.quantity) {
+              throw new BadRequestException(`Stok event tidak mencukupi`);
+            }
+
+            await tx
+              .update(schema.eventItems)
+              .set({ stock: eventItem.stock - item.quantity })
+              .where(eq(schema.eventItems.id, eventItem.id));
+          } else {
+            // Deduct from main warehouse stock (ledger-tracked)
+            await this.stockService.recordMovement(tx, {
+              productVariantId: item.productVariantId,
+              type: 'SALE',
+              quantity: -item.quantity,
+              referenceId: order.id,
+              note: `Penjualan ${dto.paymentMethod}`,
+            });
+          }
         }
       }
 

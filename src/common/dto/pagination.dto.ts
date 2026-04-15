@@ -71,6 +71,14 @@ export class PaginationQueryDto {
   @IsOptional()
   @IsString()
   sortOrder?: 'asc' | 'desc';
+  @ApiProperty({
+    description: 'Filter by event ID',
+    required: false,
+    example: 'uuid-789',
+  })
+  @IsOptional()
+  @IsString()
+  eventId?: string;
 }
 
 class PaginationMetaDto {
