@@ -11,10 +11,11 @@ import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { AllocateEventStockDto } from './dto/allocate-event-stock.dto';
 import { ReturnEventStockDto } from './dto/return-event-stock.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Events')
 @Controller('events')
@@ -37,7 +38,8 @@ export class EventsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get event details' })
+  @Public()
+  @ApiOperation({ summary: 'Get event details (public for event store)' })
   findOne(@Param('id') id: string) {
     return this.eventsService.findOne(id);
   }
