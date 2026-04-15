@@ -78,6 +78,13 @@ export class ProductsService {
         WHERE v."productId" = ${schema.products.id} AND v.stock > 0
       )`;
       where = where ? and(where, stockExist) : stockExist;
+    } else {
+      const notInAnyEvent = sql`NOT EXISTS (
+        SELECT 1 FROM ${schema.eventItems} ei
+        JOIN ${schema.productVariants} v ON ei."productVariantId" = v.id
+        WHERE v."productId" = ${schema.products.id}
+      )`;
+      where = where ? and(where, notInAnyEvent) : notInAnyEvent;
     }
 
     const orderByList: any[] = [];
