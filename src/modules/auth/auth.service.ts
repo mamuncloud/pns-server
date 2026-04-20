@@ -58,7 +58,7 @@ export class AuthService {
       return { message: 'If you are registered, a login link will be sent.' };
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
