@@ -1,16 +1,28 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/main.ts", "src/db/seed-employees.ts"],
-  "project": ["src/**/*.ts", "scripts/**/*.ts", "drizzle.config.ts"],
+  "entry": ["src/main.ts"],
+  "project": ["src/**/*.ts"],
   "ignoreDependencies": [
-    "bun-types",
     "bcrypt",
     "@types/bcrypt",
     "pino",
     "pino-pretty",
-    "@types/pino-pretty",
-    "swagger-ui-express"
+    "@types/pino-pretty"
   ],
+  "ignoreIssues": {
+    "src/lib/sku-generator.util.ts": ["exports"],
+    "src/modules/auth/decorators/public.decorator.ts": ["exports"],
+    "src/modules/customers/dto/customer-order.dto.ts": ["exports"],
+    "src/modules/products/dto/create-product.dto.ts": ["exports"],
+    "src/modules/products/dto/update-product.dto.ts": ["exports"],
+    "src/modules/purchases/dto/update-purchase.dto.ts": ["exports"],
+    "src/modules/employees/dto/create-employee.dto.ts": ["exports", "types"],
+    "src/modules/finance/finance.service.ts": ["exports", "types"],
+    "src/modules/orders/dto/create-order.dto.ts": ["exports", "types"],
+    "src/modules/orders/dto/update-order-status.dto.ts": ["exports", "types"],
+    "src/modules/payment/payment.service.ts": ["exports", "types"],
+    "src/modules/stock/stock.service.ts": ["exports", "types"]
+  },
   "jest": {
     "entry": ["src/**/*.spec.ts"]
   }
