@@ -18,6 +18,7 @@ import { EmployeesModule } from 'src/modules/employees/employees.module';
 import { FinanceModule } from 'src/modules/finance/finance.module';
 import { ExpensesModule } from 'src/modules/expenses/expenses.module';
 import { EventsModule } from 'src/modules/events/events.module';
+import { CustomersModule } from 'src/modules/customers/customers.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { EventsModule } from 'src/modules/events/events.module';
     FinanceModule,
     ExpensesModule,
     EventsModule,
+    CustomersModule,
   ],
 })
 export class AppModule {}
