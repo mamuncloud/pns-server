@@ -79,6 +79,15 @@ export class PaginationQueryDto {
   @IsOptional()
   @IsString()
   eventId?: string;
+
+  @ApiProperty({
+    description: 'Filter by variant package label (e.g. bal, Medium, Small)',
+    required: false,
+    example: 'bal',
+  })
+  @IsOptional()
+  @IsString()
+  package?: string;
 }
 
 class PaginationMetaDto {

@@ -46,6 +46,7 @@ export class ProductsService {
     sortBy?: string,
     sortOrder: 'asc' | 'desc' = 'desc',
     eventId?: string,
+    packageLabel?: string,
   ) {
     const offset = (page - 1) * limit;
 
@@ -65,26 +66,36 @@ export class ProductsService {
       where = where ? and(where, searchWhere) : searchWhere;
     }
 
-    if (eventId) {
-      const eventItemExist = sql`EXISTS (
-        SELECT 1 FROM ${schema.eventItems} ei 
-        JOIN ${schema.productVariants} v ON ei."productVariantId" = v.id
-        WHERE v."productId" = ${schema.products.id} AND ei."eventId" = ${eventId}
+    if (packageLabel) {
+      const packageAndStockExist = sql`EXISTS (
+        SELECT 1 FROM ${schema.productVariants} v
+        WHERE v."productId" = ${schema.products.id} 
+        AND v.package::text = ${packageLabel}
+        AND v.stock > 0
       )`;
-      where = where ? and(where, eventItemExist) : eventItemExist;
-    } else if (hasStock === true || hasStock === ('true' as any)) {
-      const stockExist = sql`EXISTS (
-        SELECT 1 FROM ${schema.productVariants} v 
-        WHERE v."productId" = ${schema.products.id} AND v.stock > 0
-      )`;
-      where = where ? and(where, stockExist) : stockExist;
+      where = where ? and(where, packageAndStockExist) : packageAndStockExist;
     } else {
-      const notInAnyEvent = sql`NOT EXISTS (
-        SELECT 1 FROM ${schema.eventItems} ei
-        JOIN ${schema.productVariants} v ON ei."productVariantId" = v.id
-        WHERE v."productId" = ${schema.products.id}
-      )`;
-      where = where ? and(where, notInAnyEvent) : notInAnyEvent;
+      if (eventId) {
+        const eventItemExist = sql`EXISTS (
+          SELECT 1 FROM ${schema.eventItems} ei 
+          JOIN ${schema.productVariants} v ON ei."productVariantId" = v.id
+          WHERE v."productId" = ${schema.products.id} AND ei."eventId" = ${eventId}
+        )`;
+        where = where ? and(where, eventItemExist) : eventItemExist;
+      } else if (hasStock === true || hasStock === ('true' as any)) {
+        const stockExist = sql`EXISTS (
+          SELECT 1 FROM ${schema.productVariants} v 
+          WHERE v."productId" = ${schema.products.id} AND v.stock > 0
+        )`;
+        where = where ? and(where, stockExist) : stockExist;
+      } else {
+        const notInAnyEvent = sql`NOT EXISTS (
+          SELECT 1 FROM ${schema.eventItems} ei
+          JOIN ${schema.productVariants} v ON ei."productVariantId" = v.id
+          WHERE v."productId" = ${schema.products.id}
+        )`;
+        where = where ? and(where, notInAnyEvent) : notInAnyEvent;
+      }
     }
 
     const orderByList: any[] = [];
@@ -129,7 +140,7 @@ export class ProductsService {
       const displayImageUrl = primaryImage ? primaryImage.url : this.normalizeImageUrl(null);
 
       // Important: If eventId is provided, override variant stock with event item stock
-      const variants = (product.variants || []).map((v: any) => {
+      let variants = (product.variants || []).map((v: any) => {
         if (eventId && v.eventItems && v.eventItems.length > 0) {
           return {
             ...v,
@@ -139,14 +150,16 @@ export class ProductsService {
         return v;
       });
 
-      // Filter out variants that don't belong to the event if eventId is present
-      const filteredVariants = eventId
-        ? variants.filter((v: any) => v.eventItems && v.eventItems.length > 0)
-        : variants;
+      // Filter variants based on conditions
+      if (packageLabel) {
+        variants = variants.filter((v: any) => v.package === packageLabel && v.stock > 0);
+      } else if (eventId) {
+        variants = variants.filter((v: any) => v.eventItems && v.eventItems.length > 0);
+      }
 
       return {
         ...product,
-        variants: filteredVariants,
+        variants,
         images: normalizedImages,
         imageUrl: displayImageUrl,
       };
