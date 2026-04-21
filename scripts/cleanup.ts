@@ -6,7 +6,7 @@ console.log("🚀 Starting automated cleanup...");
 
 // 1. Run ESLint Fix
 console.log("🔍 Running ESLint to remove unused code...");
-const eslintResult = spawnSync("bun", ["eslint", "src", "--fix", "--max-warnings", "0"], {
+const eslintResult = spawnSync(process.execPath, ["eslint", "src", "--fix", "--max-warnings", "0"], {
   stdio: "inherit",
 });
 
@@ -17,12 +17,21 @@ if (eslintResult.status !== 0) {
 
 // 2. Run Knip to find unused files
 console.log("📦 Running Knip to find unused files and dependencies...");
-const knipResult = spawnSync("bun", ["knip", "--reporter", "json"], {
+const knipResult = spawnSync(process.execPath, ["knip", "--reporter", "json"], {
   encoding: "utf-8",
 });
 
 try {
-  const output = JSON.parse(knipResult.stdout);
+  // Knip may output status text before the JSON payload. Search for the start of the JSON object.
+  const stdout = knipResult.stdout || "";
+  const jsonStartIndex = stdout.indexOf('{');
+  
+  if (jsonStartIndex === -1) {
+    throw new Error("No JSON object found in Knip output");
+  }
+
+  const jsonString = stdout.substring(jsonStartIndex);
+  const output = JSON.parse(jsonString);
   let filesDeleted = 0;
 
   if (output.issues) {
