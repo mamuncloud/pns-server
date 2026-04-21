@@ -74,7 +74,7 @@ export class ProductsController {
     type: AllProductsResponseDto,
   })
   async findAll(@Query() query: PaginationQueryDto) {
-    const { page, limit, taste, search, hasStock, sortBy, sortOrder, eventId } = query;
+    const { page, limit, taste, search, hasStock, sortBy, sortOrder, eventId, package: packageLabel } = query;
     const { data, totalItems } = await this.productsService.findAll(
       page,
       limit,
@@ -84,6 +84,7 @@ export class ProductsController {
       sortBy,
       sortOrder,
       eventId,
+      packageLabel,
     );
 
     return {
